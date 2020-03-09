@@ -3,9 +3,9 @@ import logging
 import torch
 import torch.nn as nn
 import numpy as np
-from src.utils import get_class_path
-from PIL import Image
-from torch.nn import functional as F
+import torchvision.transforms as transforms
+from src.loader import Class_CIFAR
+from src.models.vgg import load_model
 
 
 class Search(object):
@@ -14,7 +14,8 @@ class Search(object):
                  data_path,
                  check_cls,
                  transformer,
-                 data_size=None):
+                 prog,
+                 dtype='train'):
         """
         :param model       : searching model
         :param data_path   : train / test data root path
@@ -24,9 +25,8 @@ class Search(object):
         """
 
         self.model = model
-        self.transformer = transformer
-
-        self.cls_names = os.listdir(data_path)
+        self.prog = prog
+        self.cls_names = os.listdir(os.path.join(data_path, dtype))
 
         # remaining class path
         self.cls_img_paths = None
@@ -35,13 +35,18 @@ class Search(object):
         self.true_labels = None
         self.false_labels = []
 
+        datasets = Class_CIFAR(data_path=data_path,
+                               dtype='train',
+                               check_cls=check_cls,
+                               transformer=transformer)
+
+        self.loader = torch.utils.data.DataLoader(dataset=datasets,
+                                                  batch_size=32,
+                                                  shuffle=True)
+
         # check class dataset image path
         for i, name in enumerate(self.cls_names):
             if name in check_cls:
-                paths = get_class_path(data_path, name)
-                np.random.shuffle(paths)
-
-                self.cls_img_paths = paths if data_size is None else paths[:data_size]
                 self.true_labels = i
             else:
                 self.false_labels.append(i)
@@ -58,29 +63,17 @@ class Search(object):
 
         return grads
 
-    def backprop(self, image_path, inverse=None, device='cuda'):
+    def backprop(self, img, cls, device='cuda'):
         self.model.zero_grad()
 
-        img = self.transformer(Image.open(image_path))
-        img = img.unsqueeze(dim=0).to(device)
-
+        img = img.to(device)
         # forward
         output = self.model(img).to(device)
         # acc
-        h_x = F.softmax(output, dim=1).data.squeeze()
-        pred = h_x.argmax(0).item()
+        _, pred = torch.max(output, 1)
+        one_hot_output = torch.zeros(output.size()).to(device)
 
-        if pred is not self.cls:
-            return None
-
-        if inverse is not None:
-            pred = inverse
-
-        print(f"pred: {pred} label {self.cls}")
-
-        one_hot_output = torch.zeros(1, h_x.size()[0]).to('cuda')
-        one_hot_output[0][pred] = 1
-
+        one_hot_output[:, cls] = 1
         output.backward(gradient=one_hot_output)
 
         grads = self.get_conv_grad()
@@ -88,7 +81,7 @@ class Search(object):
         return grads
 
     @staticmethod
-    def dif(t, f):
+    def diff(t, f):
         t = abs(t)
         f = abs(f)
 
@@ -100,56 +93,51 @@ class Search(object):
     def get_diffs(self):
         total_diff = 0
 
-        for img_path in self.cls_img_paths:
-            f_grad = []
-            for img in img_path:
-                diffs = []
+        loader_iter = len(self.loader)
 
-                t_grad = self.backprop(img, cls)
+        # true image
+        for idx, img in enumerate(self.loader):
+            self.prog.setValue(100 / loader_iter * (idx + 1))
 
-                if t_grad is None:
-                    continue
+            diffs = []
+            # all t_grad
+            t_grad = self.backprop(img, cls=self.true_labels)
+            f_grad = self.backprop(img, cls=self.false_labels[0])
 
-                for i in range(len(diff_labels) - 1):
-                    f_grad1 = self.backprop(img, inverse=diff_labels[i])
-                    f_grad2 = self.backprop(img, inverse=diff_labels[i + 1])
+            for i in range(1, len(self.false_labels)):
+                f_grad_next = self.backprop(img, cls=self.false_labels[i])
 
-                    if i == 0:
-                        for g1, g2 in zip(f_grad1, f_grad2):
-                            f_grad.append(np.maximum(g1, g2))
-                    else:
-                        print("Not implement")
+                for j in range(len(f_grad)):
+                    f_grad[j] = np.maximum(f_grad[j], f_grad_next[j])
 
-                for t, f in zip(t_grad, f_grad):
-                    diffs.append(self.diff(t, f))
+            for t, f in zip(t_grad, f_grad):
+                diffs.append(self.diff(t, f))
 
-                total_diff += np.array(diffs)
+            total_diff += np.array(diffs)
 
         return total_diff
 
     def get_binary_diffs(self):
         total_diff = 0
 
-        for image_paths in zip(self.cls_paths[cls]):
-            for img in image_paths:
-                diffs = []
+        loader_iter = len(self.loader)
 
-                t_grad = self.backprop(img, 1)
-                f_grad = self.backprop(img, inverse=0)
+        for idx, img in enumerate(self.loader):
+            self.prog.setValue(100 / loader_iter * (idx + 1))
 
-                if t_grad is None:
-                    continue
+            diffs = []
 
-                for t, f in zip(t_grad, f_grad):
-                    diffs.append(self.diff(t, f))
+            t_grad = self.backprop(img, cls=1)
+            f_grad = self.backprop(img, cls=0)
 
-                total_diff += np.array(diffs)
+            for t, f in zip(t_grad, f_grad):
+                diffs.append(self.diff(t, f))
+
+            total_diff += np.array(diffs)
 
         return total_diff
 
     def get_filter_idx(self, binary=False):
-        logging.info(f"Filter Selection for {self.cls_names[self.true_labels]}")
-
         if binary:
             diffs = self.get_binary_diffs()
         else:
@@ -166,3 +154,4 @@ class Search(object):
                         filter_idx[i].append(j)
 
         return filter_idx
+

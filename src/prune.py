@@ -1,10 +1,7 @@
+import logging
 import torch.nn as nn
 import torch.optim as optim
-import torchvision.transforms as transforms
-from src.loader import Sub_Binary_CIFAR, Sub_CIFAR
 from src.converter import *
-from tqdm import tqdm
-
 
 def prune(model, filters):
     conv_id = []
@@ -42,33 +39,20 @@ def to_binary(model, c):
     return model
 
 
-def binary_train(model, configs, c, logger, device='cuda'):
+def binary_train(model, loader, batch_size, lr, prog, device='cuda'):
     model.train()
-    transformer = transforms.Compose([transforms.RandomHorizontalFlip(),
-                                      transforms.RandomCrop(size=(32, 32), padding=4),
-                                      transforms.ToTensor(),
-                                      transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
-
-    train_datasets = Sub_Binary_CIFAR(root_path=configs['root_path'],
-                                      class_names=['airplane', 'dog', 'horse'],
-                                      c=c,
-                                      dtype='train',
-                                      transformer=transformer)
-
-    train_loader = torch.utils.data.DataLoader(dataset=train_datasets,
-                                               batch_size=configs['batch_size'],
-                                               shuffle=True, )
 
     criterion = torch.nn.CrossEntropyLoss().to(device)
+    optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=5e-4)
 
-    optimizer = optim.SGD(model.parameters(), lr=configs['lr'], momentum=0.9, weight_decay=5e-4)
-
-    train_iter = len(train_loader)
+    train_iter = len(loader)
 
     train_loss = 0
     n_train_correct = 0
 
-    for i, (images, labels) in tqdm(enumerate(train_loader), total=train_iter):
+    for i, (images, labels) in enumerate(loader):
+        prog.setValue(100 / train_iter * (i + 1))
+
         images, labels = images.to(device), labels.to(device)
 
         optimizer.zero_grad()
@@ -86,37 +70,27 @@ def binary_train(model, configs, c, logger, device='cuda'):
         # weight update
         optimizer.step()
 
-        train_acc = n_train_correct / (train_iter * configs['batch_size'])
+        train_acc = n_train_correct / (train_iter * batch_size)
         train_loss = train_loss / train_iter
 
-    logger.info(f"[TRAIN Acc / {train_acc}] [TRAIN Loss / {train_loss}]")
+    logging.info(f"[TRAIN Acc / {train_acc}] [TRAIN Loss / {train_loss}]")
 
-    return model
+    return model, train_acc
 
 
-def binary_test(model, configs, c, logger, device='cuda'):
+def binary_test(model, loader, batch_size, prog, device='cuda'):
     model.eval()
-    transformer = transforms.Compose([transforms.ToTensor(),
-                                      transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
-
-    test_datasets = Sub_Binary_CIFAR(root_path=configs['root_path'],
-                                     class_names=['airplane', 'dog', 'horse'],
-                                     c=c,
-                                     dtype='test',
-                                     transformer=transformer)
-
-    test_loader = torch.utils.data.DataLoader(dataset=test_datasets,
-                                              batch_size=configs['batch_size'],
-                                              shuffle=True, )
 
     # cost
     criterion = torch.nn.CrossEntropyLoss().to(device)
 
-    test_iter = len(test_loader)
+    test_iter = len(loader)
     test_loss = 0
     n_test_correct = 0
 
-    for i, (images, labels) in tqdm(enumerate(test_loader), total=test_iter):
+    for i, (images, labels) in enumerate(loader):
+        prog.setValue(100 / test_iter * (i + 1))
+
         images, labels = images.to(device), labels.to(device)
         # forward
         pred = model(images)
@@ -128,38 +102,27 @@ def binary_test(model, configs, c, logger, device='cuda'):
         loss = criterion(pred, labels)
         test_loss += loss.item()
 
-        test_acc = n_test_correct / (test_iter * configs['batch_size'])
+        test_acc = n_test_correct / (test_iter * batch_size)
         test_loss = test_loss / test_iter
 
-    logger.info(f"[TEST Acc / {test_acc}] [TEST Loss / {test_loss}]")
+    logging.info(f"[TEST Acc / {test_acc}] [TEST Loss / {test_loss}]")
+
+    return test_acc
 
 
-def train(model, configs, logger, device='cuda'):
+def train(model, loader, batch_size, lr, prog, device='cuda'):
     model.train()
-    transformer = transforms.Compose([transforms.RandomHorizontalFlip(),
-                                      transforms.RandomCrop(size=(32, 32), padding=4),
-                                      transforms.ToTensor(),
-                                      transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
-
-    train_datasets = Sub_CIFAR(root_path=configs['root_path'],
-                               class_names=['airplane', 'dog', 'horse'],
-                               dtype='train',
-                               transformer=transformer)
-
-    train_loader = torch.utils.data.DataLoader(dataset=train_datasets,
-                                               batch_size=configs['batch_size'],
-                                               shuffle=True, )
 
     criterion = torch.nn.CrossEntropyLoss().to(device)
+    optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=5e-4)
 
-    optimizer = optim.SGD(model.parameters(), lr=configs['lr'], momentum=0.9, weight_decay=5e-4)
-
-    train_iter = len(train_loader)
-
+    train_iter = len(loader)
     train_loss = 0
     n_train_correct = 0
 
-    for i, (images, labels) in tqdm(enumerate(train_loader), total=train_iter):
+    for i, (images, labels) in enumerate(loader):
+        prog.setValue(100 / train_iter * (i + 1))
+
         images, labels = images.to(device), labels.to(device)
 
         optimizer.zero_grad()
@@ -177,36 +140,27 @@ def train(model, configs, logger, device='cuda'):
         # weight update
         optimizer.step()
 
-        train_acc = n_train_correct / (train_iter * configs['batch_size'])
+        train_acc = n_train_correct / (train_iter * batch_size)
         train_loss = train_loss / train_iter
 
-    logger.info(f"[TRAIN Acc / {train_acc}] [TRAIN Loss / {train_loss}]" )
+    logging.info(f"[TRAIN Acc / {train_acc}] [TRAIN Loss / {train_loss}]" )
 
-    return model
+    return model, train_acc
 
 
-def test(model, configs, logger, device='cuda'):
+def test(model, loader, batch_size, prog, device='cuda'):
     model.eval()
-    transformer = transforms.Compose([transforms.ToTensor(),
-                                      transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
-
-    test_datasets = Sub_CIFAR(root_path=configs['root_path'],
-                              class_names=['airplane', 'dog', 'horse'],
-                              dtype='test',
-                              transformer=transformer)
-
-    test_loader = torch.utils.data.DataLoader(dataset=test_datasets,
-                                              batch_size=configs['batch_size'],
-                                              shuffle=True, )
 
     # cost
     criterion = torch.nn.CrossEntropyLoss().to(device)
 
-    test_iter = len(test_loader)
+    test_iter = len(loader)
     test_loss = 0
     n_test_correct = 0
 
-    for i, (images, labels) in tqdm(enumerate(test_loader), total=test_iter):
+    for i, (images, labels) in enumerate(loader):
+        prog.setValue(100 / test_iter * (i + 1))
+
         images, labels = images.to(device), labels.to(device)
         # forward
         pred = model(images)
@@ -218,7 +172,9 @@ def test(model, configs, logger, device='cuda'):
         loss = criterion(pred, labels)
         test_loss += loss.item()
 
-        test_acc = n_test_correct / (test_iter * configs['batch_size'])
+        test_acc = n_test_correct / (test_iter * batch_size)
         test_loss = test_loss / test_iter
 
-    logger.info(f"[TEST Acc / {test_acc}] [TEST Loss / {test_loss}]")
+    logging.info(f"[TEST Acc / {test_acc}] [TEST Loss / {test_loss}]")
+
+    return test_acc

@@ -27,16 +27,18 @@ def get_logger(file_name='log.log'):
     return logger
 
 
-def get_class_path(data_path, class_name):
+def get_class_path(data_path, dtype, class_name):
     """
     :param data_path    : dataset root path
+    :param dtype        : train or test
     :param class_name   : class name
 
     :return: {root_path}/{dtype}/{class_name} paths
     """
     result = []
 
-    class_path = os.path.join(data_path, class_name)
+    type_path = os.path.join(data_path, dtype)
+    class_path = os.path.join(type_path, class_name)
 
     for img_name in os.listdir(class_path):
         result.append(os.path.join(class_path, img_name))
