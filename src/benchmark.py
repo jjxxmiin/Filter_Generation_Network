@@ -10,6 +10,6 @@ def show_flops(model, input_shape=(3, 32, 32)):
 
 
 def get_flops(model, input_shape=(3, 32, 32)):
-    flops, params = get_model_complexity_info(model, input_shape, as_strings=True, print_per_layer_stat=True)
+    flops, params = get_model_complexity_info(model, input_shape, as_strings=True, print_per_layer_stat=False)
 
     return flops, params

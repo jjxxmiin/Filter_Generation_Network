@@ -95,14 +95,19 @@ class Sub_Binary_CIFAR(object):
         self.labels = []
         self.transformer = transformer
 
-        for i, name in enumerate(os.listdir(os.path.join(data_path, dtype))):
+        cls_names = os.listdir(os.path.join(data_path, dtype))
+
+        for i, name in enumerate(cls_names):
             class_path = get_class_path(data_path, dtype, name)
-            self.img_path += class_path
 
             if name in true_name:
+                self.img_path += class_path
                 self.labels += [1] * len(class_path)
             else:
-                self.labels += [0] * len(class_path)
+                split = int(len(class_path) / (len(cls_names) - 1))
+
+                self.img_path += class_path[:split]
+                self.labels += [0] * split
 
     def __getitem__(self, idx):
         img = Image.open(self.img_path[idx])
@@ -151,7 +156,25 @@ class Class_CIFAR(object):
 
 
 def get_train_test_loader(data_path, batch_size, train_transformer, test_transformer, true_name=None):
-    if true_name is not None:
+    if true_name is None:
+        train_datasets = Sub_CIFAR(data_path=data_path,
+                                   dtype='train',
+                                   transformer=train_transformer)
+
+        train_loader = torch.utils.data.DataLoader(dataset=train_datasets,
+                                                   batch_size=batch_size,
+                                                   shuffle=True)
+
+        test_datasets = Sub_CIFAR(data_path=data_path,
+                                  dtype='test',
+                                  transformer=test_transformer)
+
+        test_loader = torch.utils.data.DataLoader(dataset=test_datasets,
+                                                  batch_size=batch_size,
+                                                  shuffle=True)
+
+
+    else:
         train_datasets = Sub_Binary_CIFAR(data_path=data_path,
                                           dtype='train',
                                           true_name=true_name,
@@ -165,23 +188,6 @@ def get_train_test_loader(data_path, batch_size, train_transformer, test_transfo
                                          dtype='test',
                                          true_name=true_name,
                                          transformer=test_transformer)
-
-        test_loader = torch.utils.data.DataLoader(dataset=test_datasets,
-                                                  batch_size=batch_size,
-                                                  shuffle=True)
-
-    else:
-        train_datasets = Sub_CIFAR(data_path=data_path,
-                                   dtype='train',
-                                   transformer=train_transformer)
-
-        train_loader = torch.utils.data.DataLoader(dataset=train_datasets,
-                                                   batch_size=batch_size,
-                                                   shuffle=True)
-
-        test_datasets = Sub_CIFAR(data_path=data_path,
-                                  dtype='test',
-                                  transformer=test_transformer)
 
         test_loader = torch.utils.data.DataLoader(dataset=test_datasets,
                                                   batch_size=batch_size,

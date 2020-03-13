@@ -1,11 +1,12 @@
 import os
-import logging
 import torch
 import torch.nn as nn
 import numpy as np
-import torchvision.transforms as transforms
+import random
+from tqdm import tqdm
+from src.models.vgg import get_layer_index
 from src.loader import Class_CIFAR
-from src.models.vgg import load_model
+from torch.nn import functional as F
 
 
 class Search(object):
@@ -14,7 +15,6 @@ class Search(object):
                  data_path,
                  check_cls,
                  transformer,
-                 prog,
                  dtype='train'):
         """
         :param model       : searching model
@@ -25,18 +25,13 @@ class Search(object):
         """
 
         self.model = model
-        self.prog = prog
-        self.cls_names = os.listdir(os.path.join(data_path, dtype))
-
-        # remaining class path
-        self.cls_img_paths = None
 
         # remaining class label
         self.true_labels = None
         self.false_labels = []
 
         datasets = Class_CIFAR(data_path=data_path,
-                               dtype='train',
+                               dtype=dtype,
                                check_cls=check_cls,
                                transformer=transformer)
 
@@ -45,14 +40,14 @@ class Search(object):
                                                   shuffle=True)
 
         # check class dataset image path
-        for i, name in enumerate(self.cls_names):
-            if name in check_cls:
+        for i, name in enumerate(os.listdir(os.path.join(data_path, dtype))):
+            if name == check_cls:
                 self.true_labels = i
             else:
                 self.false_labels.append(i)
 
-        logging.info(f"true labels : {self.true_labels}")
-        logging.info(f"false labels : {self.false_labels}")
+        print(f"true labels : {self.true_labels}")
+        print(f"false labels : {self.false_labels}")
 
     def get_conv_grad(self):
         grads = []
@@ -63,6 +58,18 @@ class Search(object):
 
         return grads
 
+    def get_feature_hook(self, module, input, output):
+        self.features.append(output)
+
+    def get_gradient_hook(self, module, grad_in, grad_out):
+        self.grads.append(grad_out[0])
+
+    def register(self):
+        for module, (name, _) in zip(self.model.features.modules(), self.model.features.named_modules()):
+            if type(module) == nn.Conv2d:
+                module.register_forward_hook(self.get_feature_hook)
+                module.register_backward_hook(self.get_gradient_hook)
+
     def backprop(self, img, cls, device='cuda'):
         self.model.zero_grad()
 
@@ -71,47 +78,95 @@ class Search(object):
         output = self.model(img).to(device)
         # acc
         _, pred = torch.max(output, 1)
-        one_hot_output = torch.zeros(output.size()).to(device)
 
-        one_hot_output[:, cls] = 1
+        if output.size()[1] == 1:
+            one_hot_output = torch.full(output.size(), cls).to(device)
+        else:
+            one_hot_output = torch.zeros(output.size()).to(device)
+            one_hot_output[:, cls] = 1
+
         output.backward(gradient=one_hot_output)
 
         grads = self.get_conv_grad()
 
         return grads
 
-    @staticmethod
-    def diff(t, f):
-        t = abs(t)
-        f = abs(f)
-
-        sum_t = t.reshape(t.shape[0], -1).sum(1)
-        sum_f = f.reshape(f.shape[0], -1).sum(1)
-
-        return (sum_f - sum_t) / (sum_t + 1e-5)
+    # def backprop(self, img, inverse=False, device='cuda'):
+    #     self.model.zero_grad()
+    #
+    #     img = img.to(device)
+    #     # forward
+    #     output = self.model(img).to(device)
+    #     # acc
+    #     _, pred = torch.max(output, 1)
+    #
+    #     if inverse:
+    #         one_hot_output = torch.ones(output.size()).to(device)
+    #
+    #         if output.size()[1] == 1:
+    #             one_hot_output[:] = torch.zeros(output.size()).to(device)
+    #         else:
+    #             one_hot_output[:, self.true_labels] = 0
+    #
+    #     else:
+    #         one_hot_output = torch.zeros(output.size()).to(device)
+    #
+    #         if output.size()[1] == 1:
+    #             one_hot_output = torch.ones(output.size()).to(device)
+    #         else:
+    #             one_hot_output[:, self.true_labels] = 1
+    #
+    #     output.backward(gradient=one_hot_output)
+    #
+    #     grads = self.get_conv_grad()
+    #
+    #     return grads
+    #
+    # def get_diffs(self):
+    #     total_diff = 0
+    #
+    #     iteration = len(self.loader)
+    #
+    #     # true image
+    #     for idx, img in tqdm(enumerate(self.loader), total=iteration):
+    #         diffs = []
+    #         # all t_grad
+    #         t_grad = self.backprop(img)
+    #         f_grad = self.backprop(img, inverse=True)
+    #
+    #         sum_t_grad = [abs(t.reshape(t.shape[0], -1)).sum(1) for t in t_grad]
+    #         sum_f_grad = [abs(f.reshape(f.shape[0], -1)).sum(1) for f in f_grad]
+    #
+    #         for sum_t, sum_f in zip(sum_t_grad, sum_f_grad):
+    #             diff = (sum_t - sum_f)
+    #             diffs.append(diff)
+    #
+    #         total_diff += np.array(diffs)
+    #
+    #     return total_diff
 
     def get_diffs(self):
         total_diff = 0
 
-        loader_iter = len(self.loader)
-
         # true image
         for idx, img in enumerate(self.loader):
-            self.prog.setValue(100 / loader_iter * (idx + 1))
-
             diffs = []
             # all t_grad
-            t_grad = self.backprop(img, cls=self.true_labels)
+            t_grad = self.backprop(img, cls=self.true_labels) # 32, 64, 3, 3
             f_grad = self.backprop(img, cls=self.false_labels[0])
 
-            for i in range(1, len(self.false_labels)):
-                f_grad_next = self.backprop(img, cls=self.false_labels[i])
+            sum_t_grad = [abs(t.reshape(t.shape[0], -1)).sum(1) for t in t_grad]
+            sum_f_grad = [abs(f.reshape(f.shape[0], -1)).sum(1) for f in f_grad]
 
-                for j in range(len(f_grad)):
-                    f_grad[j] = np.maximum(f_grad[j], f_grad_next[j])
+            for f_label in self.false_labels[1:]:
+                f_grad_next = self.backprop(img, cls=f_label)
+                sum_f_next_grad = [abs(f.reshape(f.shape[0], -1)).sum(1) for f in f_grad_next]
 
-            for t, f in zip(t_grad, f_grad):
-                diffs.append(self.diff(t, f))
+                for i, (sum_f1, sum_f2) in enumerate(zip(sum_f_grad, sum_f_next_grad)):
+                    sum_f_grad[i] = np.maximum(sum_f1, sum_f2)
+
+            for sum_t, sum_f in zip(sum_t_grad, sum_f_grad):
+                diffs.append(sum_t - sum_f)
 
             total_diff += np.array(diffs)
 
@@ -120,18 +175,17 @@ class Search(object):
     def get_binary_diffs(self):
         total_diff = 0
 
-        loader_iter = len(self.loader)
-
         for idx, img in enumerate(self.loader):
-            self.prog.setValue(100 / loader_iter * (idx + 1))
-
             diffs = []
 
             t_grad = self.backprop(img, cls=1)
             f_grad = self.backprop(img, cls=0)
 
-            for t, f in zip(t_grad, f_grad):
-                diffs.append(self.diff(t, f))
+            sum_t_grad = [abs(t.reshape(t.shape[0], -1)).sum(1) for t in t_grad]
+            sum_f_grad = [abs(f.reshape(f.shape[0], -1)).sum(1) for f in f_grad]
+
+            for sum_t, sum_f in zip(sum_t_grad, sum_f_grad):
+                diffs.append(sum_t - sum_f)
 
             total_diff += np.array(diffs)
 
@@ -153,5 +207,16 @@ class Search(object):
                     if d > 0:
                         filter_idx[i].append(j)
 
+            if not filter_idx[i]:
+                idx = [k for k in range(len(diff))]
+
+                filter_idx[i] = random.sample(idx, int(np.ceil(len(idx) * 0.9)))
+
         return filter_idx
 
+
+def get_random_filter_idx(filter_idx):
+    for i, idx in enumerate(filter_idx):
+        filter_idx[i] = random.sample(idx, int(np.ceil(len(idx) * 0.9)))
+
+    return filter_idx
