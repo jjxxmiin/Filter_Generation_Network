@@ -34,20 +34,19 @@ def get_logger(file_name='log.log'):
     return logger
 
 
-# TODO : Dynamic for pytorch transforms
+# HyperParam
 train_transformer = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize((0.4914, 0.4822, 0.4465),
                                                              (0.2023, 0.1994, 0.2010))])
-
 test_transformer = transforms.Compose([transforms.ToTensor(),
                                        transforms.Normalize((0.4914, 0.4822, 0.4465),
                                                             (0.2023, 0.1994, 0.2010))])
-
 cls = ['dog', 'airplane',  'horse']
 model_path = './VGG16_CIFAR10.pth'
 data_path = './datasets/cifar10'
 batch_size = 32
 lr = 0.001
+
 logger = get_logger('log.log')
 
 
@@ -74,24 +73,23 @@ for check_idx, check_cls in enumerate(cls):
                                                       train_transformer=train_transformer,
                                                       test_transformer=test_transformer)
 
-    for _ in range(0, 1):
-        model, idx = search_prune(model, idx, data_path, check_cls, transformer=test_transformer)
+    model, idx = search_prune(model, idx, data_path, check_cls, transformer=test_transformer)
 
-        for _ in range(0, 10):
-            model, train_acc = train(model, train_loader, batch_size, lr)
-            test(model, test_loader, batch_size)
+    for _ in range(0, 10):
+        model, train_acc = train(model, train_loader, batch_size, lr)
+        test(model, test_loader, batch_size)
 
     logger.info("Convert Multi -> Binary")
     model = to_binary(model, check_idx)
 
-    train_loader, test_loader = get_train_test_loader(data_path,
-                                                      batch_size=batch_size,
-                                                      train_transformer=train_transformer,
-                                                      test_transformer=test_transformer,
-                                                      true_name=check_cls)
-
     for _ in range(0, 5):
         model, idx = search_prune(model, idx, data_path, check_cls, transformer=test_transformer)
+
+        binary_train_loader, binary_test_loader = get_train_test_loader(data_path,
+                                                                        batch_size=batch_size,
+                                                                        train_transformer=train_transformer,
+                                                                        test_transformer=test_transformer,
+                                                                        true_name=check_cls)
 
         for _ in range(0, 5):
             model = binary_sigmoid_train(model, train_loader, lr)

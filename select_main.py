@@ -1,18 +1,12 @@
 import os
 import sys
-import torchvision.transforms as transforms
-
-from src.benchmark import get_flops
-from src.models.vgg import load_model, get_layer_info
-from src.prune import *
-from src.loader import get_train_test_loader
-from src.search import Search
+from src.models.vgg import load_model
 from src.pyqt_utils import *
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import *
 from PyQt5 import uic
-from status import Status_Form
+from status_main import Status_Form
 
 
 class Selc_Form(QDialog):

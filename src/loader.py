@@ -173,7 +173,6 @@ def get_train_test_loader(data_path, batch_size, train_transformer, test_transfo
                                                   batch_size=batch_size,
                                                   shuffle=True)
 
-
     else:
         train_datasets = Sub_Binary_CIFAR(data_path=data_path,
                                           dtype='train',

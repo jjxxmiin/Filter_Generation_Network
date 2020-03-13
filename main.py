@@ -174,12 +174,6 @@ class Main_Form(QDialog, QPlainTextEdit):
                                                               train_transformer=train_transformer,
                                                               test_transformer=test_transformer)
 
-            binary_train_loader, binary_test_loader = get_train_test_loader(self.data_path,
-                                                                            batch_size=batch_size,
-                                                                            train_transformer=train_transformer,
-                                                                            test_transformer=test_transformer,
-                                                                            true_name=check_cls)
-
             # 1 stage
             logging.info("Start 1 Stage")
 
@@ -198,15 +192,17 @@ class Main_Form(QDialog, QPlainTextEdit):
             for _ in range(0, 5):
                 self.search_prune(check_cls, transformer=test_transformer, stage=2)
 
+                binary_train_loader, binary_test_loader = get_train_test_loader(self.data_path,
+                                                                                batch_size=batch_size,
+                                                                                train_transformer=train_transformer,
+                                                                                test_transformer=test_transformer,
+                                                                                true_name=check_cls)
+
                 for _ in range(0, 5):
-                    self.model, train_acc = binary_sigmoid_train(self.model,
-                                                                 binary_train_loader,
-                                                                 batch_size,
-                                                                 lr,
+                    self.model, train_acc = binary_sigmoid_train(self.model, binary_train_loader,
+                                                                 batch_size, lr,
                                                                  self.finetune_bar_2)
-
                     self.train_acc_label_2.setText(str(train_acc))
-
                     test_acc = binary_sigmoid_test(self.model, binary_test_loader, batch_size, self.test_bar_2)
                     self.test_acc_label_2.setText(str(test_acc))
 
