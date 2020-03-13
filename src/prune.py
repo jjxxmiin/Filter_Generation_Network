@@ -47,7 +47,7 @@ def to_binary_2(model, c):
     return model
 
 
-def binary_train(model, loader, batch_size, lr, device='cuda'):
+def binary_train(model, loader, batch_size, lr, device='cuda', prog=None):
     model.train()
 
     criterion = torch.nn.CrossEntropyLoss().to(device)
@@ -59,6 +59,8 @@ def binary_train(model, loader, batch_size, lr, device='cuda'):
     n_train_correct = 0
 
     for i, (images, labels) in enumerate(loader):
+        if prog is not None:
+            prog.setValue(100 / len(loader) * (i + 1))
 
         images, labels = images.to(device), labels.to(device)
 
@@ -85,7 +87,7 @@ def binary_train(model, loader, batch_size, lr, device='cuda'):
     return model, train_acc
 
 
-def binary_test(model, loader, batch_size, device='cuda'):
+def binary_test(model, loader, batch_size, device='cuda', prog=None):
     model.eval()
 
     # cost
@@ -96,6 +98,9 @@ def binary_test(model, loader, batch_size, device='cuda'):
     n_test_correct = 0
 
     for i, (images, labels) in enumerate(loader):
+        if prog is not None:
+            prog.setValue(100 / len(loader) * (i + 1))
+
         images, labels = images.to(device), labels.to(device)
         # forward
         pred = model(images)
@@ -115,7 +120,7 @@ def binary_test(model, loader, batch_size, device='cuda'):
     return test_acc
 
 
-def binary_sigmoid_train(model, loader, lr, device='cuda'):
+def binary_sigmoid_train(model, loader, lr, device='cuda', prog=None):
     model.train()
 
     criterion = torch.nn.BCEWithLogitsLoss().to(device)
@@ -129,6 +134,9 @@ def binary_sigmoid_train(model, loader, lr, device='cuda'):
     train_recall = 0
 
     for i, (images, labels) in enumerate(loader):
+        if prog is not None:
+            prog.setValue(100 / len(loader) * (i + 1))
+
         images, labels = images.to(device), labels.to(device)
 
         optimizer.zero_grad()
@@ -161,7 +169,7 @@ def binary_sigmoid_train(model, loader, lr, device='cuda'):
     return model
 
 
-def binary_sigmoid_test(model, loader, device='cuda'):
+def binary_sigmoid_test(model, loader, device='cuda', prog=None):
     model.eval()
 
     # cost
@@ -174,6 +182,9 @@ def binary_sigmoid_test(model, loader, device='cuda'):
     test_loss = 0
 
     for i, (images, labels) in enumerate(loader):
+        if prog is not None:
+            prog.setValue(100 / len(loader) * (i + 1))
+
         images, labels = images.to(device), labels.to(device)
 
         # forward
@@ -198,7 +209,7 @@ def binary_sigmoid_test(model, loader, device='cuda'):
     print(f"TEST [F1_score / {f1}] , [Precision / {precision}] : [recall / {recall}] : [Loss /  {test_loss}]")
 
 
-def train(model, loader, batch_size, lr, device='cuda'):
+def train(model, loader, batch_size, lr, device='cuda', prog=None):
     model.train()
 
     criterion = torch.nn.CrossEntropyLoss().to(device)
@@ -209,6 +220,9 @@ def train(model, loader, batch_size, lr, device='cuda'):
     n_train_correct = 0
 
     for i, (images, labels) in enumerate(loader):
+        if prog is not None:
+            prog.setValue(100 / len(loader) * (i + 1))
+
         images, labels = images.to(device), labels.to(device)
 
         optimizer.zero_grad()
@@ -234,7 +248,7 @@ def train(model, loader, batch_size, lr, device='cuda'):
     return model, train_acc
 
 
-def test(model, loader, batch_size, device='cuda'):
+def test(model, loader, batch_size, device='cuda', prog=None):
     model.eval()
 
     # cost
@@ -245,6 +259,9 @@ def test(model, loader, batch_size, device='cuda'):
     n_test_correct = 0
 
     for i, (images, labels) in enumerate(loader):
+        if prog is not None:
+            prog.setValue(100 / len(loader) * (i + 1))
+
         images, labels = images.to(device), labels.to(device)
         # forward
         pred = model(images)

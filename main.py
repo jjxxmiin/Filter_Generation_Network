@@ -120,6 +120,7 @@ class Main_Form(QDialog, QPlainTextEdit):
 
         self.prune_flops_label.setText(str(flops))
         self.prune_params_label.setText(str(params))
+        print(f"FLOPs : {flops} / Params : {params}")
 
     def get_check_label(self):
         check_cls = None
@@ -139,10 +140,20 @@ class Main_Form(QDialog, QPlainTextEdit):
 
         return check_cls, uncheck_cls, check_idx
 
+    def search_prune(self, check_cls, transformer, stage=1):
+        if stage == 1:
+            search = Search(self.model, self.data_path, check_cls, transformer=transformer, prog=self.search_bar)
+        else:
+            search = Search(self.model, self.data_path, check_cls, transformer=transformer, prog=self.search_bar_2)
+
+        filters = search.get_filter_idx()
+        self.model = prune(self.model, filters)
+        self.set_prune_benchmark()
+
     def start(self):
         batch_size = 32
         lr = 0.001
-        # if self.isModel and self.isPath:
+
         if self.isModel and self.isPath:
             # get check class
             check_cls, uncheck_cls, check_idx = self.get_check_label()
@@ -158,71 +169,47 @@ class Main_Form(QDialog, QPlainTextEdit):
                                                    transforms.Normalize((0.4914, 0.4822, 0.4465),
                                                                         (0.2023, 0.1994, 0.2010))])
 
+            train_loader, test_loader = get_train_test_loader(self.data_path,
+                                                              batch_size=batch_size,
+                                                              train_transformer=train_transformer,
+                                                              test_transformer=test_transformer)
+
+            binary_train_loader, binary_test_loader = get_train_test_loader(self.data_path,
+                                                                            batch_size=batch_size,
+                                                                            train_transformer=train_transformer,
+                                                                            test_transformer=test_transformer,
+                                                                            true_name=check_cls)
+
             # 1 stage
             logging.info("Start 1 Stage")
-            for _ in range(0, 2):
-                search = Search(self.model,
-                                self.data_path,
-                                check_cls,
-                                transformer=test_transformer,
-                                dtype='train',
-                                prog=self.search_bar)
 
-                filters = search.get_filter_idx(binary=False)
+            self.search_prune(check_cls, transformer=test_transformer, stage=1)
 
-                self.model = prune(self.model,
-                                   filters)
+            for _ in range(0, 10):
+                self.model, train_acc = train(self.model, train_loader, batch_size, lr, self.finetune_bar)
+                self.train_acc_label.setText(str(train_acc))
 
-                self.set_prune_benchmark()
+                test_acc = test(self.model, train_loader, batch_size, self.test_bar)
+                self.test_acc_label.setText(str(test_acc))
 
-                train_loader, test_loader = get_train_test_loader(self.data_path,
-                                                                  batch_size=batch_size,
-                                                                  train_transformer=train_transformer,
-                                                                  test_transformer=test_transformer)
+            logging.info("Convert Multi -> Binary")
+            self.model = to_binary(self.model, check_idx)
 
-                for _ in range(0, 3):
-                    self.model, train_acc = train(self.model, train_loader, batch_size, lr, self.finetune_bar)
-                    self.train_acc_label.setText(str(train_acc))
+            for _ in range(0, 5):
+                self.search_prune(check_cls, transformer=test_transformer, stage=2)
 
-                    test_acc = test(self.model, train_loader, batch_size, self.test_bar)
-                    self.test_acc_label.setText(str(test_acc))
+                for _ in range(0, 5):
+                    self.model, train_acc = binary_sigmoid_train(self.model,
+                                                                 binary_train_loader,
+                                                                 batch_size,
+                                                                 lr,
+                                                                 self.finetune_bar_2)
 
-            for _ in range(0, 2):
-                # to binary
-                logging.info("Convert Multi -> Binary")
-                self.model = to_binary(self.model, check_idx)
-                # 2 stage
-                logging.info("Start 2 Stage")
-
-                search = Search(self.model,
-                                self.data_path,
-                                check_cls,
-                                transformer=test_transformer,
-                                dtype='train',
-                                prog=self.search_bar_2)
-
-                filters = search.get_filter_idx(binary=True)
-
-                self.model = prune(self.model,
-                                   filters)
-
-                # pruning
-                self.set_prune_benchmark()
-
-                train_loader, test_loader = get_train_test_loader(self.data_path,
-                                                                  batch_size=batch_size,
-                                                                  train_transformer=train_transformer,
-                                                                  test_transformer=test_transformer,
-                                                                  true_name=check_cls)
-
-                for _ in range(0, 3):
-                    self.model, train_acc = binary_train(self.model, train_loader, batch_size, lr, self.finetune_bar_2)
                     self.train_acc_label_2.setText(str(train_acc))
 
-                    test_acc = binary_test(self.model, test_loader, batch_size, self.test_bar_2)
+                    test_acc = binary_sigmoid_test(self.model, binary_test_loader, batch_size, self.test_bar_2)
                     self.test_acc_label_2.setText(str(test_acc))
 
-            self.set_prune_layer_view()
         else:
             logging.error(f"Input Model or Path")
 

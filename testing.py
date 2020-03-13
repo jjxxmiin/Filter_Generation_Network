@@ -5,9 +5,9 @@ from src.models.vgg import load_model, get_layer_index
 from src.prune import *
 from src.loader import get_train_test_loader
 from src.search import Search
+from src.utils import load_pkl, save_pkl
 
 import logging
-import pickle
 from logging import handlers
 
 
@@ -63,18 +63,6 @@ def search_prune(model, idx, data_path, check_cls, transformer):
     logger.info(f"FLOPs : {flops} / Params : {params}")
 
     return model, idx
-
-
-def save_pkl(data, path):
-    with open(path, 'wb') as f:
-        pickle.dump(data, f)
-
-
-def load_pkl(path):
-    with open(path, 'rb') as f:
-        data = pickle.load(f)  # 단 한줄씩 읽어옴
-
-    return data
 
 
 for check_idx, check_cls in enumerate(cls):

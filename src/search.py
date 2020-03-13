@@ -15,7 +15,8 @@ class Search(object):
                  data_path,
                  check_cls,
                  transformer,
-                 dtype='train'):
+                 dtype='train',
+                 prog=None):
         """
         :param model       : searching model
         :param data_path   : train / test data root path
@@ -29,6 +30,7 @@ class Search(object):
         # remaining class label
         self.true_labels = None
         self.false_labels = []
+        self.prog = prog
 
         datasets = Class_CIFAR(data_path=data_path,
                                dtype=dtype,
@@ -150,6 +152,9 @@ class Search(object):
 
         # true image
         for idx, img in enumerate(self.loader):
+            if self.prog is not None:
+                self.prog.setValue(100 / len(self.loader) * (idx + 1))
+
             diffs = []
             # all t_grad
             t_grad = self.backprop(img, cls=self.true_labels) # 32, 64, 3, 3
