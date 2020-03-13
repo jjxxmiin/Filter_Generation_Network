@@ -18,11 +18,11 @@ Prune_QTorch
 
 ## Main
 
-![main](fig/main.PNG)
+![main](./fig/main.PNG)
 
 ## Input Model & Dataset
 
-![input](fig/input.PNG)
+![input](./fig/input.PNG)
 
 ## How to use??
 ```shell script
