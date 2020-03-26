@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import copy
-
+import logging
 
 # def cvt_first_conv2d(conv, post):
 #     new_conv = copy.deepcopy(conv)
@@ -59,7 +59,7 @@ def cvt_first_conv2d(conv, post, device='cuda'):
     ori_weights = conv.weight.data.cpu().numpy()
     new_weights = ori_weights[post, :]
 
-    print(f"first conv2d : {new_weights.shape}")
+    logging.info(f"first conv2d : {new_weights.shape}")
 
     new_conv.weight.data = torch.from_numpy(new_weights)
     new_conv.weight.data = new_conv.weight.data.cuda()
@@ -81,7 +81,7 @@ def cvt_middle_conv2d(conv, pre, post, device='cuda'):
     new_weights = old_weights[post, :]
     new_weights = new_weights[:, pre]
 
-    print(f"middle conv2d : {new_weights.shape}")
+    logging.info(f"middle conv2d : {new_weights.shape}")
 
     new_conv.weight.data = torch.from_numpy(new_weights)
     new_conv.weight.data = new_conv.weight.data.cuda()
@@ -102,7 +102,7 @@ def cvt_last_conv2d(conv, pre, device='cuda'):
     old_weights = conv.weight.data.cpu().numpy()
     new_weights = old_weights[:, pre]
 
-    print(f"last conv2d : {new_weights.shape}")
+    logging.info(f"last conv2d : {new_weights.shape}")
 
     new_conv.weight.data = torch.from_numpy(new_weights)
     new_conv.weight.data = new_conv.weight.data.cuda()
@@ -159,7 +159,7 @@ def cvt_last_bn2d(bn):
     return new_bn
 
 
-def cvt_binary_sigmoid_linear(linear, cls, device='cuda'):
+def kijcvt_binary_sigmoid_linear(linear, cls, device='cuda'):
     new_linear = torch.nn.Linear(in_features=linear.in_features,
                                  out_features=1,
                                  bias=(linear.bias is not None)).to(device)

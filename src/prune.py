@@ -1,4 +1,4 @@
-
+import logging
 import torch.nn as nn
 import torch.optim as optim
 from src.converter import *
@@ -82,7 +82,7 @@ def binary_train(model, loader, batch_size, lr, device='cuda', prog=None):
     train_acc = n_train_correct / (train_iter * batch_size)
     train_loss = train_loss / train_iter
 
-    print(f"[TRAIN Acc / {train_acc}] [TRAIN Loss / {train_loss}]")
+    logging.info(f"[TRAIN Acc / {train_acc}] [TRAIN Loss / {train_loss}]")
 
     return model, train_acc
 
@@ -115,7 +115,7 @@ def binary_test(model, loader, batch_size, device='cuda', prog=None):
     test_acc = n_test_correct / (test_iter * batch_size)
     test_loss = test_loss / test_iter
 
-    print(f"[TEST Acc / {test_acc}] [TEST Loss / {test_loss}]")
+    logging.info(f"[TEST Acc / {test_acc}] [TEST Loss / {test_loss}]")
 
     return test_acc
 
@@ -164,7 +164,7 @@ def binary_sigmoid_train(model, loader, lr, device='cuda', prog=None):
 
     train_loss = train_loss / train_iter
 
-    print(f"TRAIN [F1_score / {f1}] , [Precision / {precision}] : [recall / {recall}] : [Loss /  {train_loss}]")
+    logging.info(f"TRAIN [F1_score / {f1}] , [Precision / {precision}] : [recall / {recall}] : [Loss /  {train_loss}]")
 
     return model
 
@@ -206,7 +206,7 @@ def binary_sigmoid_test(model, loader, device='cuda', prog=None):
 
     test_loss = test_loss / test_iter
 
-    print(f"TEST [F1_score / {f1}] , [Precision / {precision}] : [recall / {recall}] : [Loss /  {test_loss}]")
+    logging.info(f"TEST [F1_score / {f1}] , [Precision / {precision}] : [recall / {recall}] : [Loss /  {test_loss}]")
 
 
 def train(model, loader, batch_size, lr, device='cuda', prog=None):
@@ -243,7 +243,7 @@ def train(model, loader, batch_size, lr, device='cuda', prog=None):
     train_acc = n_train_correct / (train_iter * batch_size)
     train_loss = train_loss / train_iter
 
-    print(f"[TRAIN Acc / {train_acc}] [TRAIN Loss / {train_loss}]" )
+    logging.info(f"[TRAIN Acc / {train_acc}] [TRAIN Loss / {train_loss}]" )
 
     return model, train_acc
 
@@ -276,4 +276,4 @@ def test(model, loader, batch_size, device='cuda', prog=None):
     test_acc = n_test_correct / (test_iter * batch_size)
     test_loss = test_loss / test_iter
 
-    print(f"[TEST Acc / {test_acc}] [TEST Loss / {test_loss}]")
+    logging.info(f"[TEST Acc / {test_acc}] [TEST Loss / {test_loss}]")

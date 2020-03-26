@@ -1,12 +1,12 @@
 import os
 import sys
 from src.models.vgg import load_model
-from src.pyqt_utils import *
+from qt.pyqt_utils import *
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import *
 from PyQt5 import uic
-from status_main import Status_Form
+from qt.status_main import Status_Form
 
 
 class Selc_Form(QDialog):

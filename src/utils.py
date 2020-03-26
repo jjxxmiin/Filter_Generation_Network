@@ -47,11 +47,15 @@ def get_class_path(data_path, dtype, class_name):
 
 
 def save_pkl(data, path):
+    logging.info("SUCESS Save")
+
     with open(path, 'wb') as f:
         pickle.dump(data, f)
 
 
 def load_pkl(path):
+    logging.info("SUCESS Load")
+
     with open(path, 'rb') as f:
         data = pickle.load(f)
 

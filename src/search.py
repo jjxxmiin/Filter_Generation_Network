@@ -7,12 +7,14 @@ from tqdm import tqdm
 from src.models.vgg import get_layer_index
 from src.loader import Class_CIFAR
 from torch.nn import functional as F
+import logging
 
 
 class Search(object):
     def __init__(self,
                  model,
                  data_path,
+                 subset,
                  check_cls,
                  transformer,
                  dtype='train',
@@ -42,14 +44,14 @@ class Search(object):
                                                   shuffle=True)
 
         # check class dataset image path
-        for i, name in enumerate(os.listdir(os.path.join(data_path, dtype))):
+        for i, name in enumerate(subset):
             if name == check_cls:
                 self.true_labels = i
             else:
                 self.false_labels.append(i)
 
-        print(f"true labels : {self.true_labels}")
-        print(f"false labels : {self.false_labels}")
+        logging.info(f"true labels : {self.true_labels}")
+        logging.info(f"false labels : {self.false_labels}")
 
     def get_conv_grad(self):
         grads = []

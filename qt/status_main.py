@@ -1,6 +1,6 @@
 import sys
 from src.models.vgg import get_layer_info
-from src.pyqt_utils import *
+from qt.pyqt_utils import *
 
 from PyQt5.QtWidgets import *
 from PyQt5 import uic

@@ -44,6 +44,7 @@ class Sub_CIFAR(object):
 
     def __init__(self,
                  data_path,
+                 subset,
                  dtype,
                  transformer=None):
 
@@ -56,7 +57,7 @@ class Sub_CIFAR(object):
         self.labels = []
         self.transformer = transformer
 
-        for i, name in enumerate(os.listdir(os.path.join(data_path, dtype))):
+        for i, name in enumerate(subset):
             class_path = get_class_path(data_path, dtype, name)
             self.img_path += class_path
             self.labels += [i] * len(class_path)
@@ -81,6 +82,7 @@ class Sub_Binary_CIFAR(object):
 
     def __init__(self,
                  data_path,
+                 subset,
                  true_name,
                  dtype='train',
                  transformer=None):
@@ -95,20 +97,19 @@ class Sub_Binary_CIFAR(object):
         self.labels = []
         self.transformer = transformer
 
-        cls_names = os.listdir(os.path.join(data_path, dtype))
-
-        for i, name in enumerate(cls_names):
+        for i, name in enumerate(subset):
             class_path = get_class_path(data_path, dtype, name)
 
             if name in true_name:
                 self.img_path += class_path
                 self.labels += [1] * len(class_path)
             else:
-                split = int(len(class_path) / (len(cls_names) - 1))
+                split = int(len(class_path) / (len(subset) - 1))
 
                 self.img_path += class_path[:split]
                 self.labels += [0] * split
 
+        print(self.labels)
     def __getitem__(self, idx):
         img = Image.open(self.img_path[idx])
         label = self.labels[idx]
@@ -155,9 +156,10 @@ class Class_CIFAR(object):
         return len(self.img_path)
 
 
-def get_train_test_loader(data_path, batch_size, train_transformer, test_transformer, true_name=None):
+def get_train_test_loader(data_path, subset, batch_size, train_transformer, test_transformer, true_name=None):
     if true_name is None:
         train_datasets = Sub_CIFAR(data_path=data_path,
+                                   subset=subset,
                                    dtype='train',
                                    transformer=train_transformer)
 
@@ -166,6 +168,7 @@ def get_train_test_loader(data_path, batch_size, train_transformer, test_transfo
                                                    shuffle=True)
 
         test_datasets = Sub_CIFAR(data_path=data_path,
+                                  subset=subset,
                                   dtype='test',
                                   transformer=test_transformer)
 
@@ -175,6 +178,7 @@ def get_train_test_loader(data_path, batch_size, train_transformer, test_transfo
 
     else:
         train_datasets = Sub_Binary_CIFAR(data_path=data_path,
+                                          subset=subset,
                                           dtype='train',
                                           true_name=true_name,
                                           transformer=train_transformer)
@@ -184,6 +188,7 @@ def get_train_test_loader(data_path, batch_size, train_transformer, test_transfo
                                                    shuffle=True)
 
         test_datasets = Sub_Binary_CIFAR(data_path=data_path,
+                                         subset=subset,
                                          dtype='test',
                                          true_name=true_name,
                                          transformer=test_transformer)
