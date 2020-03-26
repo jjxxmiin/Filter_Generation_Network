@@ -3,48 +3,6 @@ import numpy as np
 import copy
 import logging
 
-# def cvt_first_conv2d(conv, post):
-#     new_conv = copy.deepcopy(conv)
-#     new_conv.weight.data = new_conv.weight.data[post, :]
-#
-#     print(f"first conv2d : {new_conv.weight.data.shape}")
-#
-#     return new_conv
-#
-#
-# def cvt_middle_conv2d(conv, pre, post):
-#     new_conv = copy.deepcopy(conv)
-#     new_conv.weight.data = new_conv.weight.data[post, :]
-#     new_conv.weight.data = new_conv.weight.data[:, pre]
-#
-#     print(f"middle conv2d : {new_conv.weight.data.shape}")
-#
-#     return new_conv
-#
-#
-# def cvt_last_conv2d(conv, pre):
-#     new_conv = copy.deepcopy(conv)
-#     new_conv.weight.data = new_conv.weight.data[:, pre]
-#
-#     print(f"last conv2d : {new_conv.weight.data.shape}")
-#
-#     return new_conv
-#
-#
-# def cvt_bn2d(bn, post):
-#     new_bn = copy.deepcopy(bn)
-#     new_bn.weight.data = new_bn.weight.data[post]
-#     new_bn.running_mean.data = new_bn.running_mean.data[post]
-#     new_bn.running_var.data = new_bn.running_var.data[post]
-#
-#     return new_bn
-#
-#
-# def cvt_last_bn2d(bn):
-#     new_bn = copy.deepcopy(bn)
-#     new_bn.weight.data = new_bn.weight.data
-#
-#     return new_bn
 
 def cvt_first_conv2d(conv, post, device='cuda'):
     new_conv = torch.nn.Conv2d(in_channels=conv.in_channels,
@@ -110,34 +68,6 @@ def cvt_last_conv2d(conv, pre, device='cuda'):
     return new_conv
 
 
-# def cvt_bn2d(bn, post, device='cuda'):
-#     new_bn = torch.nn.BatchNorm2d(num_features=len(post),
-#                                   eps=bn.eps,
-#                                   momentum=bn.momentum,
-#                                   affine=bn.affine,
-#                                   track_running_stats=bn.track_running_stats).to(device)
-#
-#     old_weights = bn.weight.data.cpu().numpy()
-#     new_weights = old_weights[post]
-#
-#     new_bn.weight.data = torch.from_numpy(new_weights)
-#     new_bn.weight.data = new_bn.weight.data.cuda()
-#
-#     return new_bn
-#
-#
-# def cvt_last_bn2d(bn, device='cuda'):
-#     new_bn = torch.nn.BatchNorm2d(num_features=bn.num_features,
-#                                   eps=bn.eps,
-#                                   momentum=bn.momentum,
-#                                   affine=bn.affine,
-#                                   track_running_stats=bn.track_running_stats).to(device)
-#
-#     new_bn.weight.data = torch.from_numpy(bn.weight.data.cpu().numpy())
-#     new_bn.weight.data = new_bn.weight.data.cuda()
-#
-#     return new_bn
-
 def cvt_bn2d(bn, post):
     new_bn = copy.deepcopy(bn)
     new_bn.weight.data = new_bn.weight.data[post]
@@ -159,7 +89,7 @@ def cvt_last_bn2d(bn):
     return new_bn
 
 
-def kijcvt_binary_sigmoid_linear(linear, cls, device='cuda'):
+def cvt_binary_sigmoid_linear(linear, cls, device='cuda'):
     new_linear = torch.nn.Linear(in_features=linear.in_features,
                                  out_features=1,
                                  bias=(linear.bias is not None)).to(device)

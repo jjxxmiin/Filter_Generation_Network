@@ -1,5 +1,3 @@
-import torchvision.models as models
-import torch
 from ptflops import get_model_complexity_info
 
 

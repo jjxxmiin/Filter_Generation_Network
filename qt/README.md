@@ -1,10 +1,10 @@
 ## Main
 
-![main](fig/main.PNG)
+![main](./fig/main.PNG)
 
 ## Input Model & Dataset
 
-![input](fig/input.PNG)
+![input](./fig/input.PNG)
 
 ## How to use??
 ```shell script
@@ -19,5 +19,3 @@ python view.py
 ### 문제점
 - 실행중 다른행동시 응답없음
 
-TODO:
-- [ ] QThread

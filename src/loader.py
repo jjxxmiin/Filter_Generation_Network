@@ -1,45 +1,56 @@
 import os
 import torch
+import numpy as np
 import torchvision
-from torch.utils.data import sampler
+import torchvision.datasets as datasets
+import torchvision.transforms as transforms
+import torch.utils.data as data
 from PIL import Image
 from src.utils import get_class_path
 
 
-class CIFAR10(object):
-    """
-    image shape : 32 x 32
-    ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
-    """
-
+class Loader(object):
     def __init__(self,
-                 batch_size):
+                 data_path):
 
-        self.classes = 10
-        self.batch_size = batch_size
+        self.data_path = data_path
 
-    def get_loader(self, transformer, mode='train', shuffle=True):
-        if mode == 'train':
-            train = True
-        else:
-            train = False
+    def get_loader(self, transformer, batch_size, dtype='train', shuffle=True):
+        dataset = datasets.ImageFolder(os.path.join(self.data_path, dtype), transform=transformer)
+        loader = torch.utils.data.DataLoader(dataset,
+                                             batch_size=batch_size,
+                                             shuffle=shuffle)
 
-        cifar10_dataset = torchvision.datasets.CIFAR10(root='./datasets',
-                                                       train=train,
-                                                       transform=transformer,
-                                                       download=True)
+        return loader
 
-        cifar10_loader = torch.utils.data.DataLoader(cifar10_dataset,
-                                                     batch_size=self.batch_size,
-                                                     shuffle=shuffle)
 
-        return cifar10_loader
+"""
+########################################################################################################################
+########################################################################################################################
+######################################################## CIFAR10 #######################################################
+########################################################################################################################
+########################################################################################################################
+
+image shape : 32 x 32
+['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+"""
+
+
+# def sub_cifar(data_path, subset, batch_size, transformer, dtype='train'):
+#     sub_dataset = datasets.ImageFolder(os.path.join(data_path, dtype), transform=transformer)
+#
+#     for s in subset:
+#         idx = torch.tensor(sub_dataset.targets) == sub_dataset.classes.index(s)
+#
+#     sub_dataset = torch.utils.data.Subset(sub_dataset, np.where(idx == 1)[0])
+#     sub_loader = data.DataLoader(sub_dataset, batch_size=batch_size, shuffle=True)
+#
+#     return sub_loader
 
 
 class Sub_CIFAR(object):
     """
-    image shape : 32 x 32
-    ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+    cifar10 : subset multi
     """
 
     def __init__(self,
@@ -50,6 +61,7 @@ class Sub_CIFAR(object):
 
         """
         :param data_path   : Dataset Root Path
+        :param subset      : [(str) class_1 name, (str) class_2 name ...]
         :param dtype       : train, test
         """
 
@@ -77,7 +89,7 @@ class Sub_CIFAR(object):
 
 class Sub_Binary_CIFAR(object):
     """
-    image shape : 32 x 32
+    cifar10 : subset binary
     """
 
     def __init__(self,
@@ -88,9 +100,9 @@ class Sub_Binary_CIFAR(object):
                  transformer=None):
         """
         :param data_path   : Dataset Root Path
-        :param class_names : part of cifar10 class name
+        :param subset      : [(str) class_1_name, (str) class_2_name ...]
+        :param true_name   : true class name
         :param dtype       : train, test
-        :param c           : class 1 / other 0
         """
 
         self.img_path = []
@@ -109,7 +121,6 @@ class Sub_Binary_CIFAR(object):
                 self.img_path += class_path[:split]
                 self.labels += [0] * split
 
-        print(self.labels)
     def __getitem__(self, idx):
         img = Image.open(self.img_path[idx])
         label = self.labels[idx]
@@ -123,9 +134,9 @@ class Sub_Binary_CIFAR(object):
         return len(self.img_path)
 
 
-class Class_CIFAR(object):
+class One_CIFAR(object):
     """
-    image shape : 32 x 32
+    cifar10 : only one class
     """
 
     def __init__(self,
@@ -137,7 +148,132 @@ class Class_CIFAR(object):
         :param data_path   : Dataset Root Path
         :param check_cls   : cifar10 class name
         :param dtype       : train, test
-        :param c           : class 1 / other 0
+        """
+
+        self.labels = []
+        self.transformer = transformer
+        self.img_path = get_class_path(data_path, dtype, check_cls)
+
+    def __getitem__(self, idx):
+        img = Image.open(self.img_path[idx])
+
+        if self.transformer is not None:
+            img = self.transformer(img)
+
+        return img
+
+    def __len__(self):
+        return len(self.img_path)
+
+"""
+########################################################################################################################
+########################################################################################################################
+##################################################### Tiny-ImageNet ####################################################
+########################################################################################################################
+########################################################################################################################
+"""
+
+
+class Sub_Tiny_ImageNet(object):
+    """
+    cifar10 : subset multi
+    """
+
+    def __init__(self,
+                 data_path,
+                 subset,
+                 dtype,
+                 transformer=None):
+
+        """
+        :param data_path   : Dataset Root Path
+        :param subset      : [(str) class_1 name, (str) class_2 name ...]
+        :param dtype       : train, test
+        """
+
+        self.img_path = []
+        self.labels = []
+        self.transformer = transformer
+
+        for i, name in enumerate(subset):
+            class_path = get_class_path(data_path, dtype, name)
+            self.img_path += class_path
+            self.labels += [i] * len(class_path)
+
+    def __getitem__(self, idx):
+        img = Image.open(self.img_path[idx])
+        label = self.labels[idx]
+
+        if self.transformer is not None:
+            img = self.transformer(img)
+
+        return img, label
+
+    def __len__(self):
+        return len(self.img_path)
+
+
+class Sub_Binary_Tiny_ImageNet(object):
+    """
+    cifar10 : subset binary
+    """
+
+    def __init__(self,
+                 data_path,
+                 subset,
+                 true_name,
+                 dtype='train',
+                 transformer=None):
+        """
+        :param data_path   : Dataset Root Path
+        :param subset      : [(str) class_1_name, (str) class_2_name ...]
+        :param true_name   : true class name
+        :param dtype       : train, test
+        """
+
+        self.img_path = []
+        self.labels = []
+        self.transformer = transformer
+
+        for i, name in enumerate(subset):
+            class_path = get_class_path(data_path, dtype, name)
+
+            if name in true_name:
+                self.img_path += class_path
+                self.labels += [1] * len(class_path)
+            else:
+                split = int(len(class_path) / (len(subset) - 1))
+
+                self.img_path += class_path[:split]
+                self.labels += [0] * split
+
+    def __getitem__(self, idx):
+        img = Image.open(self.img_path[idx])
+        label = self.labels[idx]
+
+        if self.transformer is not None:
+            img = self.transformer(img)
+
+        return img, label
+
+    def __len__(self):
+        return len(self.img_path)
+
+
+class One_Tiny_ImageNet(object):
+    """
+    cifar10 : only one class
+    """
+
+    def __init__(self,
+                 data_path,
+                 check_cls,
+                 dtype='train',
+                 transformer=None):
+        """
+        :param data_path   : Dataset Root Path
+        :param check_cls   : cifar10 class name
+        :param dtype       : train, test
         """
 
         self.labels = []
@@ -156,7 +292,16 @@ class Class_CIFAR(object):
         return len(self.img_path)
 
 
-def get_train_test_loader(data_path, subset, batch_size, train_transformer, test_transformer, true_name=None):
+"""
+########################################################################################################################
+########################################################################################################################
+###################################################### GET Loader ######################################################
+########################################################################################################################
+########################################################################################################################
+"""
+
+
+def get_cifar10_loader(data_path, subset, batch_size, train_transformer, test_transformer, true_name=None):
     if true_name is None:
         train_datasets = Sub_CIFAR(data_path=data_path,
                                    subset=subset,
@@ -196,5 +341,7 @@ def get_train_test_loader(data_path, subset, batch_size, train_transformer, test
         test_loader = torch.utils.data.DataLoader(dataset=test_datasets,
                                                   batch_size=batch_size,
                                                   shuffle=True)
+
+
 
     return train_loader, test_loader

@@ -1,3 +1,4 @@
-/datasets/
+/datasets/cifar10/
+/datasets/tiny_imagenet/
 /models/
 /pkl/

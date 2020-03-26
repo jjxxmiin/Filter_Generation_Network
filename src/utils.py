@@ -60,3 +60,22 @@ def load_pkl(path):
         data = pickle.load(f)
 
     return data
+
+
+def name_to_label(data_path, label_file='words.txt'):
+    class_table = {}
+
+    with open(os.path.join(data_path, label_file), 'r') as f:
+        word_to_label = f.readlines()
+
+        for wtl in word_to_label:
+            label, word = wtl.rstrip('\n').split('\t')
+            name = word.split(',')[0]
+
+            class_table[label] = name
+
+    train_data_path = os.path.join(data_path, 'train')
+    train_data_label = os.listdir(train_data_path)
+
+    for i in train_data_label:
+        os.rename(os.path.join(train_data_path, i), os.path.join(train_data_path, class_table[i]))
