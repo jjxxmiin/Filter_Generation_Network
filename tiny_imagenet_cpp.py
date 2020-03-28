@@ -1,38 +1,14 @@
+import os
+import re
 import torchvision.transforms as transforms
 from itertools import combinations
 
-from src.benchmark import get_flops
 from src.models.vgg import load_model, get_layer_index
 from src.prune import *
-from src.loader import get_cifar10_loader
+from src.loader import get_tiny_imagenet_loader
+from src.utils import save_pkl, get_logger
+from src.benchmark import get_flops
 from src.search import Search
-from src.utils import save_pkl
-
-import logging
-from logging import handlers
-
-
-def get_logger(file_name='log.log'):
-    # create logger
-    logger = logging.getLogger("")
-    logger.setLevel(logging.INFO)
-
-    # formatter handler
-    formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
-
-    stream_hander = logging.StreamHandler()
-    stream_hander.setFormatter(formatter)
-    logger.addHandler(stream_hander)
-
-    # file handler
-    log_max_size = 10 * 1024 * 1024
-    log_file_count = 20
-
-    file_handler = handlers.RotatingFileHandler(filename=file_name, maxBytes=log_max_size, backupCount=log_file_count)
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-
-    return logger
 
 
 def search_prune(model, idx, data_path, subset, check_cls, transformer):
@@ -43,33 +19,35 @@ def search_prune(model, idx, data_path, subset, check_cls, transformer):
         idx[i] = idx[i][f]
 
     model = prune(model, filters)
-    flops, params = get_flops(model)
+    flops, params = get_flops(model, input_shape=(3, 64, 64))
     logging.info(f"FLOPs : {flops} / Params : {params}")
 
     return model, idx
-
 
 # HyperParam
 train_transformer = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize((0.4914, 0.4822, 0.4465),
                                                              (0.2023, 0.1994, 0.2010))])
+
 test_transformer = transforms.Compose([transforms.ToTensor(),
                                        transforms.Normalize((0.4914, 0.4822, 0.4465),
                                                             (0.2023, 0.1994, 0.2010))])
 
-
-class_name = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
-
-data_path = './datasets/cifar10'
+data_path = './datasets/tiny_imagenet'
 batch_size = 32
 lr = 0.001
 
-logger = get_logger('./log.log')
+logger = get_logger('./tiny_imagenet_log.log')
+class_name = os.listdir('./models/imagenet')
 
-for subset in list(combinations(class_name, 3)):
+for i in range(len(class_name)):
+    part = class_name[i].split('\'')
+    class_name[i] = tuple([part[1], part[3], part[5]])
+
+for subset in class_name:
     logger.info(subset)
 
-    model_path = f'./models/VGG16_{subset}.pth'
+    model_path = f'./models/imagenet/{subset}.pth'
 
     for check_idx, check_cls in enumerate(subset):
         logger.info(check_cls)
@@ -77,7 +55,7 @@ for subset in list(combinations(class_name, 3)):
         idx = get_layer_index()
         model = load_model(model_path, mode='eval')
 
-        train_loader, test_loader = get_cifar10_loader(data_path,
+        train_loader, test_loader = get_tiny_imagenet_loader(data_path,
                                                        subset=subset,
                                                        batch_size=batch_size,
                                                        train_transformer=train_transformer,
@@ -95,7 +73,7 @@ for subset in list(combinations(class_name, 3)):
         for _ in range(0, 5):
             model, idx = search_prune(model, idx, data_path, subset, check_cls, transformer=test_transformer)
 
-            binary_train_loader, binary_test_loader = get_cifar10_loader(data_path,
+            binary_train_loader, binary_test_loader = get_tiny_imagenet_loader(data_path,
                                                                          subset=subset,
                                                                          batch_size=batch_size,
                                                                          train_transformer=train_transformer,
@@ -106,4 +84,4 @@ for subset in list(combinations(class_name, 3)):
                 model = binary_sigmoid_train(model, binary_train_loader, lr)
                 binary_sigmoid_test(model, binary_test_loader)
 
-        save_pkl(idx, f'./pkl/{subset}_{check_cls}_idx.pkl')
+        save_pkl(idx, f'./pkl/imagenet/{subset}_{check_cls}_idx.pkl')

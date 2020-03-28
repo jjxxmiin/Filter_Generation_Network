@@ -16,7 +16,8 @@ class VGG(nn.Module):
     def __init__(self, vgg_name, output=10):
         super(VGG, self).__init__()
         self.features = self._make_layers(cfg[vgg_name])
-        self.classifier = nn.Linear(512, output)
+        # self.classifier = nn.Linear(512, output)
+        self.classifier = nn.Linear(2048, output)
 
     def forward(self, x):
         out = self.features(x)
@@ -47,7 +48,7 @@ def test():
 
 
 def load_model(path, type='VGG16', mode='eval', device='cuda'):
-    model = VGG(type).to(device)
+    model = VGG(type, output=3).to(device)
     model.load_state_dict(torch.load(path))
 
     if mode == 'train':

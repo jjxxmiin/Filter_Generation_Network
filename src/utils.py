@@ -1,10 +1,12 @@
 import os
+import shutil
 import logging
 import pickle
 from logging import handlers
+from src.prune import prune
 
 
-def get_logger(file_name='log.log'):
+def get_logger(file_name='cifar10_log.log'):
     # create logger
     logger = logging.getLogger("")
     logger.setLevel(logging.INFO)
@@ -62,7 +64,7 @@ def load_pkl(path):
     return data
 
 
-def name_to_label(data_path, label_file='words.txt'):
+def name_to_label(data_path, dtype='train', label_file='words.txt'):
     class_table = {}
 
     with open(os.path.join(data_path, label_file), 'r') as f:
@@ -74,8 +76,32 @@ def name_to_label(data_path, label_file='words.txt'):
 
             class_table[label] = name
 
-    train_data_path = os.path.join(data_path, 'train')
-    train_data_label = os.listdir(train_data_path)
+    path = os.path.join(data_path, dtype)
+    label = os.listdir(path)
 
-    for i in train_data_label:
-        os.rename(os.path.join(train_data_path, i), os.path.join(train_data_path, class_table[i]))
+    for i in label:
+        if not os.path.isdir(os.path.join(path, i)):
+            pass
+
+        os.rename(os.path.join(path, i), os.path.join(path, class_table[i]))
+
+
+def imagenet_val_struct(data_path):
+    val_data_path = os.path.join(data_path, 'val')
+
+    with open(os.path.join(val_data_path, 'val_annotations.txt')) as f:
+        word_to_label = f.readlines()
+
+        for wtl in word_to_label:
+            img_name, label = wtl.rstrip('\n').split('\t')[:2]
+
+            if not os.path.exists(os.path.join(val_data_path, label)):
+                os.mkdir(os.path.join(val_data_path, label))
+
+            shutil.move(os.path.join(val_data_path, f'images/{img_name}'),
+                        os.path.join(val_data_path, f'{label}/{img_name}'), )
+
+    os.removedirs(os.path.join(val_data_path, 'images'))
+
+
+

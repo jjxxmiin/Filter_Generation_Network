@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 import numpy as np
 import random
-from src.loader import One_CIFAR
 import logging
+from src.loader import One_Tiny_ImageNet, One_CIFAR
 
 
 class Search(object):
@@ -31,10 +31,15 @@ class Search(object):
         self.false_labels = []
         self.prog = prog
 
-        datasets = One_CIFAR(data_path=data_path,
-                           dtype=dtype,
-                           check_cls=check_cls,
-                           transformer=transformer)
+        # datasets = One_CIFAR(data_path=data_path,
+        #                      dtype=dtype,
+        #                      check_cls=check_cls,
+        #                      transformer=transformer)
+
+        datasets = One_Tiny_ImageNet(data_path=data_path,
+                                     dtype=dtype,
+                                     check_cls=check_cls,
+                                     transformer=transformer)
 
         self.loader = torch.utils.data.DataLoader(dataset=datasets,
                                                   batch_size=32,

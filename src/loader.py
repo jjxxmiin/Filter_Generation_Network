@@ -176,13 +176,13 @@ class One_CIFAR(object):
 
 class Sub_Tiny_ImageNet(object):
     """
-    cifar10 : subset multi
+    ImageNet : subset multi
     """
 
     def __init__(self,
                  data_path,
                  subset,
-                 dtype,
+                 dtype='train',
                  transformer=None):
 
         """
@@ -195,13 +195,25 @@ class Sub_Tiny_ImageNet(object):
         self.labels = []
         self.transformer = transformer
 
-        for i, name in enumerate(subset):
-            class_path = get_class_path(data_path, dtype, name)
-            self.img_path += class_path
-            self.labels += [i] * len(class_path)
+        if dtype == 'train':
+            for i, name in enumerate(subset):
+                class_path = get_class_path(data_path, dtype, os.path.join(name, 'images'))
+                self.img_path += class_path
+                self.labels += [i] * len(class_path)
+        else:
+            for i, name in enumerate(subset):
+                class_path = get_class_path(data_path, dtype, name)
+                self.img_path += class_path
+                self.labels += [i] * len(class_path)
+
+        print(self.img_path)
 
     def __getitem__(self, idx):
         img = Image.open(self.img_path[idx])
+
+        if img.getbands()[0] == 'L':
+            img = img.convert('RGB')
+
         label = self.labels[idx]
 
         if self.transformer is not None:
@@ -215,7 +227,7 @@ class Sub_Tiny_ImageNet(object):
 
 class Sub_Binary_Tiny_ImageNet(object):
     """
-    cifar10 : subset binary
+    ImageNet : subset binary
     """
 
     def __init__(self,
@@ -236,7 +248,10 @@ class Sub_Binary_Tiny_ImageNet(object):
         self.transformer = transformer
 
         for i, name in enumerate(subset):
-            class_path = get_class_path(data_path, dtype, name)
+            if dtype == 'train':
+                class_path = get_class_path(data_path, dtype, os.path.join(name, 'images'))
+            else:
+                class_path = get_class_path(data_path, dtype, name)
 
             if name in true_name:
                 self.img_path += class_path
@@ -251,6 +266,9 @@ class Sub_Binary_Tiny_ImageNet(object):
         img = Image.open(self.img_path[idx])
         label = self.labels[idx]
 
+        if img.getbands()[0] == 'L':
+            img = img.convert('RGB')
+
         if self.transformer is not None:
             img = self.transformer(img)
 
@@ -262,7 +280,7 @@ class Sub_Binary_Tiny_ImageNet(object):
 
 class One_Tiny_ImageNet(object):
     """
-    cifar10 : only one class
+    ImageNet : only one class
     """
 
     def __init__(self,
@@ -278,10 +296,16 @@ class One_Tiny_ImageNet(object):
 
         self.labels = []
         self.transformer = transformer
-        self.img_path = get_class_path(data_path, dtype, check_cls)
+        if dtype == 'train':
+            self.img_path = get_class_path(data_path, dtype, os.path.join(check_cls, 'images'))
+        else:
+            self.img_path = get_class_path(data_path, dtype, check_cls)
 
     def __getitem__(self, idx):
         img = Image.open(self.img_path[idx])
+
+        if img.getbands()[0] == 'L':
+            img = img.convert('RGB')
 
         if self.transformer is not None:
             img = self.transformer(img)
@@ -342,6 +366,48 @@ def get_cifar10_loader(data_path, subset, batch_size, train_transformer, test_tr
                                                   batch_size=batch_size,
                                                   shuffle=True)
 
+    return train_loader, test_loader
 
+
+def get_tiny_imagenet_loader(data_path, subset, batch_size, train_transformer, test_transformer, true_name=None):
+    if true_name is None:
+        train_datasets = Sub_Tiny_ImageNet(data_path=data_path,
+                                           subset=subset,
+                                           dtype='train',
+                                           transformer=train_transformer)
+
+        train_loader = torch.utils.data.DataLoader(dataset=train_datasets,
+                                                   batch_size=batch_size,
+                                                   shuffle=True)
+
+        test_datasets = Sub_Tiny_ImageNet(data_path=data_path,
+                                          subset=subset,
+                                          dtype='val',
+                                          transformer=test_transformer)
+
+        test_loader = torch.utils.data.DataLoader(dataset=test_datasets,
+                                                  batch_size=batch_size,
+                                                  shuffle=True)
+
+    else:
+        train_datasets = Sub_Binary_Tiny_ImageNet(data_path=data_path,
+                                                  subset=subset,
+                                                  dtype='train',
+                                                  true_name=true_name,
+                                                  transformer=train_transformer)
+
+        train_loader = torch.utils.data.DataLoader(dataset=train_datasets,
+                                                   batch_size=batch_size,
+                                                   shuffle=True)
+
+        test_datasets = Sub_Binary_Tiny_ImageNet(data_path=data_path,
+                                                 subset=subset,
+                                                 dtype='val',
+                                                 true_name=true_name,
+                                                 transformer=test_transformer)
+
+        test_loader = torch.utils.data.DataLoader(dataset=test_datasets,
+                                                  batch_size=batch_size,
+                                                  shuffle=True)
 
     return train_loader, test_loader
