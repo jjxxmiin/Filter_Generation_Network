@@ -45,6 +45,8 @@ Dataset infomation
 
 ## Fit Structure
 
+IF use tiny imagenet
+
 ```shell script
 python fit_structure.py
 ```
