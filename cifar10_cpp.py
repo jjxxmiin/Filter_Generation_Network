@@ -5,10 +5,11 @@ from src.benchmark import get_flops
 from src.models.vgg import load_model, get_layer_index
 from src.prune import *
 from src.loader import get_cifar10_loader
-from src.search import Search
+from src.search import Search, get_random_filter_idx
 from src.utils import save_pkl
 
 import logging
+import random
 from logging import handlers
 
 
@@ -49,6 +50,19 @@ def search_prune(model, idx, data_path, subset, check_cls, transformer):
     return model, idx
 
 
+def random_search_prune(model, cache_idx, ratio):
+    filters = get_random_filter_idx(cache_idx, ratio=ratio)
+
+    for i, f in enumerate(filters[:-1]):
+        cache_idx[i] = cache_idx[i][f]
+
+    model = prune(model, filters)
+    flops, params = get_flops(model)
+    logging.info(f"FLOPs : {flops} / Params : {params}")
+
+    return model, cache_idx
+
+
 # HyperParam
 train_transformer = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize((0.4914, 0.4822, 0.4465),
@@ -62,19 +76,24 @@ class_name = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'h
 
 data_path = './datasets/cifar10'
 batch_size = 32
-lr = 0.001
+lr = 0.01
 
-logger = get_logger('./cifar10_log.log')
+logger = get_logger('./cifar10_search_log.log')
 
-for subset in list(combinations(class_name, 3)):
+# test_sets = list(combinations(class_name, 3))
+# random.sample(test_sets, 1)
+test_sets = [('airplane', 'automobile', 'truck')]
+
+for subset in test_sets:
+    logger.info("===================================== search -> search ==================================================")
     logger.info(subset)
 
-    model_path = f'./models/VGG16_{subset}.pth'
+    model_path = f'./models/cifar10/VGG16_{subset}.pth'
 
     for check_idx, check_cls in enumerate(subset):
         logger.info(check_cls)
 
-        idx = get_layer_index()
+        cache_idx = get_layer_index()
         model = load_model(model_path, mode='eval')
 
         train_loader, test_loader = get_cifar10_loader(data_path,
@@ -83,7 +102,7 @@ for subset in list(combinations(class_name, 3)):
                                                        train_transformer=train_transformer,
                                                        test_transformer=test_transformer)
 
-        model, idx = search_prune(model, idx, data_path, subset, check_cls, transformer=test_transformer)
+        model, cache_idx = search_prune(model, cache_idx, data_path, subset, check_cls, transformer=test_transformer)
 
         for _ in range(0, 10):
             model, train_acc = train(model, train_loader, batch_size, lr)
@@ -93,7 +112,51 @@ for subset in list(combinations(class_name, 3)):
         model = to_binary(model, check_idx)
 
         for _ in range(0, 5):
-            model, idx = search_prune(model, idx, data_path, subset, check_cls, transformer=test_transformer)
+            pre_score = 0
+            model, cache_idx = search_prune(model, cache_idx, data_path, subset, check_cls, transformer=test_transformer)
+            binary_train_loader, binary_test_loader = get_cifar10_loader(data_path,
+                                                                         subset=subset,
+                                                                         batch_size=batch_size,
+                                                                         train_transformer=train_transformer,
+                                                                         test_transformer=test_transformer,
+                                                                         true_name=check_cls)
+
+            for _ in range(0, 5):
+                temp_model = binary_sigmoid_train(model, binary_train_loader, lr)
+                score = binary_sigmoid_test(temp_model, binary_test_loader)
+
+                if score > pre_score:
+                    model = temp_model
+                    pre_score = score
+
+    logger.info("===================================== search -> random ==================================================")
+    logger.info(subset)
+
+    for check_idx, check_cls in enumerate(subset):
+        logger.info(check_cls)
+
+        cache_idx = get_layer_index()
+        model = load_model(model_path, mode='eval')
+
+        train_loader, test_loader = get_cifar10_loader(data_path,
+                                                       subset=subset,
+                                                       batch_size=batch_size,
+                                                       train_transformer=train_transformer,
+                                                       test_transformer=test_transformer)
+
+        model, cache_idx = search_prune(model, cache_idx, data_path, subset, check_cls, transformer=test_transformer)
+
+        for _ in range(0, 10):
+            model, train_acc = train(model, train_loader, batch_size, lr)
+            test(model, test_loader, batch_size)
+
+        logger.info("Convert Multi -> Binary")
+        model = to_binary(model, check_idx)
+
+        for _ in range(0, 5):
+            pre_score = 0
+
+            model, cache_idx = random_search_prune(model, cache_idx, ratio=0.9)
 
             binary_train_loader, binary_test_loader = get_cifar10_loader(data_path,
                                                                          subset=subset,
@@ -103,7 +166,96 @@ for subset in list(combinations(class_name, 3)):
                                                                          true_name=check_cls)
 
             for _ in range(0, 5):
-                model = binary_sigmoid_train(model, binary_train_loader, lr)
-                binary_sigmoid_test(model, binary_test_loader)
+                temp_model = binary_sigmoid_train(model, binary_train_loader, lr)
+                score = binary_sigmoid_test(temp_model, binary_test_loader)
 
-        save_pkl(idx, f'./pkl/{subset}_{check_cls}_idx.pkl')
+                if score > pre_score:
+                    model = temp_model
+                    pre_score = score
+
+    logger.info("===================================== random -> random ==================================================")
+    logger.info(subset)
+
+    for check_idx, check_cls in enumerate(subset):
+        logger.info(check_cls)
+
+        cache_idx = get_layer_index()
+        model = load_model(model_path, mode='eval')
+
+        train_loader, test_loader = get_cifar10_loader(data_path,
+                                                       subset=subset,
+                                                       batch_size=batch_size,
+                                                       train_transformer=train_transformer,
+                                                       test_transformer=test_transformer)
+
+        model, cache_idx = random_search_prune(model, cache_idx, ratio=0.4)
+
+        for _ in range(0, 10):
+            model, train_acc = train(model, train_loader, batch_size, lr)
+            test(model, test_loader, batch_size)
+
+        logger.info("Convert Multi -> Binary")
+        model = to_binary(model, check_idx)
+
+        for _ in range(0, 5):
+            pre_score = 0
+
+            model, cache_idx = random_search_prune(model, cache_idx, ratio=0.9)
+
+            binary_train_loader, binary_test_loader = get_cifar10_loader(data_path,
+                                                                         subset=subset,
+                                                                         batch_size=batch_size,
+                                                                         train_transformer=train_transformer,
+                                                                         test_transformer=test_transformer,
+                                                                         true_name=check_cls)
+
+            for _ in range(0, 5):
+                temp_model = binary_sigmoid_train(model, binary_train_loader, lr)
+                score = binary_sigmoid_test(temp_model, binary_test_loader)
+
+                if score > pre_score:
+                    model = temp_model
+                    pre_score = score
+
+    logger.info("===================================== random -> search ==================================================")
+    logger.info(subset)
+
+    for check_idx, check_cls in enumerate(subset):
+        logger.info(check_cls)
+
+        cache_idx = get_layer_index()
+        model = load_model(model_path, mode='eval')
+
+        train_loader, test_loader = get_cifar10_loader(data_path,
+                                                       subset=subset,
+                                                       batch_size=batch_size,
+                                                       train_transformer=train_transformer,
+                                                       test_transformer=test_transformer)
+
+        model, cache_idx = random_search_prune(model, cache_idx, ratio=0.4)
+
+        for _ in range(0, 10):
+            model, train_acc = train(model, train_loader, batch_size, lr)
+            test(model, test_loader, batch_size)
+
+        logger.info("Convert Multi -> Binary")
+        model = to_binary(model, check_idx)
+
+        for _ in range(0, 5):
+            pre_score = 0
+            model, cache_idx = search_prune(model, cache_idx, data_path, subset, check_cls, transformer=test_transformer)
+
+            binary_train_loader, binary_test_loader = get_cifar10_loader(data_path,
+                                                                         subset=subset,
+                                                                         batch_size=batch_size,
+                                                                         train_transformer=train_transformer,
+                                                                         test_transformer=test_transformer,
+                                                                         true_name=check_cls)
+
+            for _ in range(0, 5):
+                temp_model = binary_sigmoid_train(model, binary_train_loader, lr)
+                score = binary_sigmoid_test(temp_model, binary_test_loader)
+
+                if score > pre_score:
+                    model = temp_model
+                    pre_score = score

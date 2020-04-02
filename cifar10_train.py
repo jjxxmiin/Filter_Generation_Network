@@ -1,12 +1,13 @@
 import sys
 from tqdm import tqdm
+from itertools import combinations
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
 
 from src.models.vgg import VGG
-from src.loader import Loader
+from src.loader import Sub_CIFAR
 
 sys.path.append('.')
 
@@ -28,97 +29,106 @@ configs = {
     'data_path': './datasets/cifar10'
 }
 
-# augmentation
-train_transformer = transforms.Compose([transforms.RandomHorizontalFlip(),
-                                        transforms.RandomCrop(size=(32, 32), padding=4),
-                                        transforms.ToTensor(),
-                                        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+class_name = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 
-test_transformer = transforms.Compose([transforms.ToTensor(),
-                                       transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+for subset in list(combinations(class_name, 3)):
+    print(subset)
+    # augmentation
+    train_transformer = transforms.Compose([transforms.RandomHorizontalFlip(),
+                                            transforms.RandomCrop(size=(32, 32), padding=4),
+                                            transforms.ToTensor(),
+                                            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
 
-# datasets/loader
-loader = Loader(configs['data_path'])
+    test_transformer = transforms.Compose([transforms.ToTensor(),
+                                           transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
 
-train_loader = loader.get_loader(transformer=train_transformer,
-                                 batch_size=configs['batch_size'],
-                                 dtype='train',
-                                 shuffle=True,)
+    # datasets/loader
+    train_datasets = Sub_CIFAR(configs['data_path'],
+                               subset,
+                               dtype='train',
+                               transformer=train_transformer)
 
-test_loader = loader.get_loader(transformer=test_transformer,
-                                batch_size=configs['batch_size'],
-                                dtype='test',
-                                shuffle=True,)
+    train_loader = torch.utils.data.DataLoader(dataset=train_datasets,
+                                               batch_size=configs['batch_size'],
+                                               shuffle=True,)
 
-# model
-model = VGG('VGG16', output=configs['classes']).to(device)
-print(model)
+    test_datasets = Sub_CIFAR(configs['data_path'],
+                              subset,
+                              dtype='test',
+                              transformer=test_transformer)
 
-# cost
-criterion = nn.CrossEntropyLoss().to(device)
+    test_loader = torch.utils.data.DataLoader(dataset=test_datasets,
+                                              batch_size=configs['batch_size'],
+                                              shuffle=True)
 
-# optimizer/scheduler
-optimizer = optim.SGD(model.parameters(), lr=configs['lr'], momentum=0.9, weight_decay=1e-5)
-scheduler = optim.lr_scheduler.MultiStepLR(optimizer=optimizer,
-                                           milestones=[50],
-                                           gamma=0.1)
+    # model
+    model = VGG('VGG16', output=3).to(device)
+    print(model)
 
-best_valid_acc = 0
-train_iter = len(train_loader)
-test_iter = len(test_loader)
+    # cost
+    criterion = nn.CrossEntropyLoss().to(device)
 
-# train
-for epoch in range(configs['epochs']):
+    # optimizer/scheduler
+    optimizer = optim.SGD(model.parameters(), lr=configs['lr'], momentum=0.9, weight_decay=1e-5)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer=optimizer,
+                                               milestones=[50],
+                                               gamma=0.1)
 
-    train_loss = 0
-    valid_loss = 0
+    best_valid_acc = 0
+    train_iter = len(train_loader)
+    test_iter = len(test_loader)
 
-    n_train_correct = 0
-    n_valid_correct = 0
+    # train
+    for epoch in range(configs['epochs']):
 
-    scheduler.step()
+        train_loss = 0
+        valid_loss = 0
 
-    for i, (images, labels) in tqdm(enumerate(train_loader), total=train_iter):
-        model.train()
-        images, labels = images.to(device), labels.to(device)
+        n_train_correct = 0
+        n_valid_correct = 0
 
-        optimizer.zero_grad()
-        # forward
-        pred = model(images)
-        # acc
-        _, predicted = torch.max(pred, 1)
-        n_train_correct += (predicted == labels).sum().item()
-        # loss
-        loss = criterion(pred, labels)
-        train_loss += loss.item()
-        # backward
-        loss.backward()
-        # weight update
-        optimizer.step()
+        scheduler.step()
+        for i, (images, labels) in tqdm(enumerate(train_loader), total=train_iter):
+            model.train()
+            images, labels = images.to(device), labels.to(device)
 
-    train_acc = n_train_correct / (train_iter * configs['batch_size'])
-    train_loss = train_loss / train_iter
+            optimizer.zero_grad()
+            # forward
+            pred = model(images)
+            # acc
+            _, predicted = torch.max(pred, 1)
+            n_train_correct += (predicted == labels).sum().item()
+            # loss
+            loss = criterion(pred, labels)
+            train_loss += loss.item()
+            # backward
+            loss.backward()
+            # weight update
+            optimizer.step()
 
-    model.eval()
-    for images, labels in test_loader:
-        images, label = images.to(device), labels.to(device)
+        train_acc = n_train_correct / (train_iter * configs['batch_size'])
+        train_loss = train_loss / train_iter
 
-        pred = model(images)
-        # acc
-        _, predicted = torch.max(pred, 1)
-        n_valid_correct += (predicted == labels).sum().item()
-        # loss
-        loss = criterion(pred, labels)
-        valid_loss += loss.item()
+        model.eval()
+        for images, labels in test_loader:
+            images, label = images.to(device), labels.to(device)
 
-    valid_acc = n_valid_correct / (test_iter * configs['batch_size'])
-    valid_loss = valid_loss / test_iter
+            pred = model(images)
+            # acc
+            _, predicted = torch.max(pred, 1)
+            n_valid_correct += (predicted == labels).sum().item()
+            # loss
+            loss = criterion(pred, labels)
+            valid_loss += loss.item()
 
-    print(f"\nEpoch [ {configs['epochs']} / {epoch} ] "
-          f"TRAIN [Acc / Loss] : [ {train_acc} / {train_loss} ]"
-          f" TEST [Acc / Loss] : [ {valid_acc} / {valid_loss} ]")
+        valid_acc = n_valid_correct / (test_iter * configs['batch_size'])
+        valid_loss = valid_loss / test_iter
 
-    if valid_acc > best_valid_acc:
-        print("model saved")
-        torch.save(model.state_dict(), f"./models/{configs['model']}.pth")
-        best_valid_acc = valid_acc
+        print(f"\nEpoch [ {configs['epochs']} / {epoch} ] "
+              f"TRAIN [Acc / Loss] : [ {train_acc} / {train_loss} ]"
+              f" TEST [Acc / Loss] : [ {valid_acc} / {valid_loss} ]")
+
+        if valid_acc > best_valid_acc:
+            print("model saved")
+            torch.save(model.state_dict(), f"./models/{configs['model']}_{name}.pth")
+            best_valid_acc = valid_acc
