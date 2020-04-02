@@ -22,25 +22,32 @@ else:
 
 configs = {
     'task': 'classify',
-    'model': 'VGG16',
+    'model': 'VGG19',
     'dataset': 'Tiny_ImageNet',
     'classes': 3,
     'lr': 0.01,
     'epochs': 100,
     'batch_size': 32,
+    'input_shape': (3, 224, 224),
     'data_path': './datasets/tiny_imagenet'
 }
 
-if not os.path.exists('./models/imagenet'):
-    os.mkdir('./models/imagenet')
+type = 'imagenet_224_2'
+
+if not os.path.exists(f'./models/{type}'):
+    os.mkdir(f'./models/{type}')
 
 # augmentation
 train_transformer = transforms.Compose([transforms.RandomHorizontalFlip(),
-                                        transforms.RandomCrop(size=(64, 64), padding=4),
+                                        transforms.Resize(size=(configs['input_shape'][1],
+                                                                configs['input_shape'][2])),
+                                        transforms.RandomCrop(size=(configs['input_shape'][1],
+                                                                    configs['input_shape'][2]), padding=4),
                                         transforms.ToTensor(),
                                         transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
 
-test_transformer = transforms.Compose([transforms.ToTensor(),
+test_transformer = transforms.Compose([transforms.Resize(size=(224, 224)),
+                                       transforms.ToTensor(),
                                        transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
 
 # datasets/loader
@@ -70,7 +77,7 @@ for subset in random.sample(class_name, 5):
     print(subset)
 
     # model
-    model = VGG('VGG16', output=configs['classes']).to(device)
+    model = VGG(configs['model'], output=configs['classes']).to(device)
 
     # cost
     criterion = nn.CrossEntropyLoss().to(device)
@@ -87,7 +94,6 @@ for subset in random.sample(class_name, 5):
 
     # train
     for epoch in range(configs['epochs']):
-
         train_loss = 0
         valid_loss = 0
 
@@ -138,5 +144,5 @@ for subset in random.sample(class_name, 5):
 
         if valid_acc > best_valid_acc:
             print("model saved")
-            torch.save(model.state_dict(), f"./models/imagenet/{subset}.pth")
+            torch.save(model.state_dict(), f"./models/{type}/{subset}.pth")
             best_valid_acc = valid_acc
