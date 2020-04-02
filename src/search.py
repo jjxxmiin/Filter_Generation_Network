@@ -31,15 +31,15 @@ class Search(object):
         self.false_labels = []
         self.prog = prog
 
-        # datasets = One_CIFAR(data_path=data_path,
-        #                      dtype=dtype,
-        #                      check_cls=check_cls,
-        #                      transformer=transformer)
+        datasets = One_CIFAR(data_path=data_path,
+                             dtype=dtype,
+                             check_cls=check_cls,
+                             transformer=transformer)
 
-        datasets = One_Tiny_ImageNet(data_path=data_path,
-                                     dtype=dtype,
-                                     check_cls=check_cls,
-                                     transformer=transformer)
+        # datasets = One_Tiny_ImageNet(data_path=data_path,
+        #                              dtype=dtype,
+        #                              check_cls=check_cls,
+        #                              transformer=transformer)
 
         self.loader = torch.utils.data.DataLoader(dataset=datasets,
                                                   batch_size=32,
@@ -170,8 +170,15 @@ class Search(object):
         return filter_idx
 
 
-def get_random_filter_idx(filter_idx):
+def get_random_filter_idx(cache_idx, ratio):
+    filter_idx = cache_idx.copy()
+
     for i, idx in enumerate(filter_idx):
-        filter_idx[i] = random.sample(idx, int(np.ceil(len(idx) * 0.9)))
+        list_idx = [k for k in range(len(idx))]
+
+        if i < 2:
+            filter_idx[i] = np.array(list_idx)
+        else:
+            filter_idx[i] = np.array(random.sample(list_idx, int(np.ceil(len(list_idx) * ratio))))
 
     return filter_idx

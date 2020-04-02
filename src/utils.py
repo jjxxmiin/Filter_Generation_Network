@@ -3,8 +3,6 @@ import shutil
 import logging
 import pickle
 from logging import handlers
-from src.prune import prune
-
 
 def get_logger(file_name='cifar10_log.log'):
     # create logger
@@ -86,7 +84,9 @@ def name_to_label(data_path, dtype='train', label_file='words.txt'):
         os.rename(os.path.join(path, i), os.path.join(path, class_table[i]))
 
 
-def imagenet_val_struct(data_path):
+def fit_structure(data_path):
+    name_to_label(data_path, dtype='train')
+
     val_data_path = os.path.join(data_path, 'val')
 
     with open(os.path.join(val_data_path, 'val_annotations.txt')) as f:
@@ -103,5 +103,5 @@ def imagenet_val_struct(data_path):
 
     os.removedirs(os.path.join(val_data_path, 'images'))
 
-
+    name_to_label(data_path, dtype='val')
 

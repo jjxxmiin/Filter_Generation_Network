@@ -1,9 +1,6 @@
 import os
 import torch
-import numpy as np
-import torchvision
 import torchvision.datasets as datasets
-import torchvision.transforms as transforms
 import torch.utils.data as data
 from PIL import Image
 from src.utils import get_class_path
@@ -205,8 +202,6 @@ class Sub_Tiny_ImageNet(object):
                 class_path = get_class_path(data_path, dtype, name)
                 self.img_path += class_path
                 self.labels += [i] * len(class_path)
-
-        print(self.img_path)
 
     def __getitem__(self, idx):
         img = Image.open(self.img_path[idx])

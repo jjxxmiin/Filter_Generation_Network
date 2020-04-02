@@ -7,9 +7,9 @@ Prune_QTorch
      |         |       | dog      | .jpg ...
      |         | test  
      |
-     | tiny_imagenet  | train | Class1   | .jpg ...
-                      |       | Class2   | .jpg ...
-                      | test
+     | tiny_imagenet  | train | Class1   | images | .jpg ...
+                      |       | Class2   | images | .jpg ...
+                      | val
 ```
 
 - cifar10 : pytorch loader class
@@ -42,3 +42,9 @@ Dataset infomation
 
 - train : 5000 per class
 - test  : 1000 per class
+
+## Fit Structure
+
+```shell script
+python fit_structure.py
+```

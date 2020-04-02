@@ -208,6 +208,8 @@ def binary_sigmoid_test(model, loader, device='cuda', prog=None):
 
     logging.info(f"TEST [F1_score / {f1}] , [Precision / {precision}] : [recall / {recall}] : [Loss /  {test_loss}]")
 
+    return f1
+
 
 def train(model, loader, batch_size, lr, device='cuda', prog=None):
     model.train()
