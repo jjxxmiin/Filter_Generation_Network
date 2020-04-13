@@ -5,18 +5,21 @@ import sys
 import argparse
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
+from torchvision import datasets
+from torchvision import transforms
 
 sys.path.append(os.path.dirname('.'))
 
 from benchmark.l1_norm.resnet import resnet34
-from benchmark.helper import test, accuracy
-from utils.model_tools import *
+from benchmark.helper import valid
+from benchmark.model_tools import *
 
 parser = argparse.ArgumentParser(description='Pruning filters for efficient ConvNets')
 parser.add_argument('--data_path', type=str, default='/home/ubuntu/datasets/imagenet',
                     help='Path to root dataset folder ')
 parser.add_argument('--save_path', type=str, default='./l1_prune_model.pth',
                     help='Path to model save')
+parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--device', '-d', type=str, default='cuda',
                     help='select [cpu / cuda]')
 parser.add_argument('-v', type=str, default='A',
@@ -160,8 +163,25 @@ torch.save({'cfg': cfg,
             'state_dict': prune_model.state_dict()},
              args.save_path + '.tar')
 
-acc_top1, acc_top5 = test(model, args.data_path)
-prune_acc_top1, prune_acc_top5 = test(prune_model, args.data_path)
+# valid dataset
+transformer = transforms.Compose([transforms.Resize(256),
+                                  transforms.CenterCrop(224),
+                                  transforms.ToTensor(),
+                                  transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                                       std=[0.229, 0.224, 0.225])])
+
+valid_dataset = datasets.ImageFolder(os.path.join(args.data_path, 'val'),
+                                     transformer)
+
+valid_loader = torch.utils.data.DataLoader(valid_dataset,
+                                           batch_size=args.batch_size,
+                                           shuffle=True,
+                                           pin_memory=True)
+
+criterion = nn.CrossEntropyLoss().cuda()
+
+acc_top1, acc_top5 = valid(model, valid_loader, criterion)
+prune_acc_top1, prune_acc_top5 = valid(prune_model, valid_loader, criterion)
 
 num_ori_parameters = sum([param.nelement() for param in model.parameters()])
 num_pru_parameters = sum([param.nelement() for param in prune_model.parameters()])

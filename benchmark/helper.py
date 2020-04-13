@@ -1,10 +1,35 @@
 import os
 import time
+import logging
 import torch
 import torch.nn as nn
-from torchvision import datasets
-from torchvision import transforms
+
 from tqdm import tqdm
+from logging import handlers
+
+
+def get_logger(file_name='log.log'):
+    # create logger
+    logger = logging.getLogger("")
+    logger.setLevel(logging.INFO)
+
+    # formatter handler
+    formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+
+    stream_hander = logging.StreamHandler()
+    stream_hander.setFormatter(formatter)
+    logger.addHandler(stream_hander)
+
+    # file handler
+    log_max_size = 10 * 1024 * 1024
+    log_file_count = 20
+
+    file_handler = handlers.RotatingFileHandler(filename=file_name, maxBytes=log_max_size, backupCount=log_file_count)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+    return logger
+
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -41,33 +66,22 @@ def accuracy(output, target, topk=(1, )):
     return res
 
 
-def test(model, root_path, batch_size=32):
-    transformer = transforms.Compose([transforms.Resize(256),
-                                      transforms.CenterCrop(224),
-                                      transforms.ToTensor(),
-                                      transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                                           std=[0.229, 0.224, 0.225])])
-
-    valid_dataset = datasets.ImageFolder(os.path.join(root_path, 'val'),
-                                         transformer)
-
-    valid_loader = torch.utils.data.DataLoader(valid_dataset,
-                                               batch_size=batch_size,
-                                               shuffle=True,
-                                               pin_memory=True)
-
-    model.eval()
+def train(model, train_loader, criterion, optimizer, epoch_log):
     batch_time = AverageMeter()
+    data_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
-    criterion = nn.CrossEntropyLoss().cuda()
+
+    model.train()
 
     end = time.time()
 
-    val_iter = len(valid_loader)
+    train_iter = len(train_loader)
 
-    for i, (input, target) in tqdm(enumerate(valid_loader), total=val_iter):
+    for i, (input, target) in enumerate(train_loader):
+        data_time.update(time.time() - end)
+
         target = target.cuda(async=True)
         input_var = torch.autograd.Variable(input, volatile=True)
         target_var = torch.autograd.Variable(target, volatile=True)
@@ -85,12 +99,51 @@ def test(model, root_path, batch_size=32):
         batch_time.update(time.time() - end)
         end = time.time()
 
-        print(f'Test: [{i}/{len(valid_loader)}]\t'
-              f'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-              f'Loss {losses.val:.4f} ({losses.avg:.4f})\t'
-              f'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-              f'Prec@5 {top5.val:.3f} ({top5.avg:.3f})')
+        print(f'{epoch_log} \n'
+              f'Iter: [{i}/{train_iter}] \n'
+              f'Time {batch_time.val:.3f} ({batch_time.avg:.3f}) \n'
+              f'Data {data_time.val:.3f} ({data_time.avg:.3f}) \n'
+              f'Loss {losses.val:.4f} ({losses.avg:.4f}) \n'
+              f'Prec@1 {top1.val:.3f} ({top1.avg:.3f}) \n'
+              f'Prec@5 {top5.val:.3f} ({top5.avg:.3f}) \n')
 
-    print(f' * Prec@1 {top1.avg:.3f} Prec@5 {top5.avg:.3f}')
+
+def valid(model, valid_loader, criterion):
+    batch_time = AverageMeter()
+    losses = AverageMeter()
+    top1 = AverageMeter()
+    top5 = AverageMeter()
+
+    model.eval()
+
+    end = time.time()
+
+    valid_iter = len(valid_loader)
+
+    for i, (input, target) in enumerate(valid_loader):
+        target = target.cuda(async=True)
+        input_var = torch.autograd.Variable(input, volatile=True)
+        target_var = torch.autograd.Variable(target, volatile=True)
+
+        output = model(input_var)
+        loss = criterion(output, target_var)
+
+        prec1, prec5 = accuracy(output.data, target, topk=(1, 5))
+
+        losses.update(loss.data, input.size(0))
+        top1.update(prec1[0], input.size(0))
+        top5.update(prec5[0], input.size(0))
+
+        # measure elapsed time
+        batch_time.update(time.time() - end)
+        end = time.time()
+
+        print(f'Iter: [{i}/{valid_iter}]\n'
+              f'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\n'
+              f'Loss {losses.val:.4f} ({losses.avg:.4f})\n'
+              f'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\n'
+              f'Prec@5 {top5.val:.3f} ({top5.avg:.3f})\n')
+
+    print(f' * Prec@1 {top1.avg:.3f} Prec@5 {top5.avg:.3f} \n')
 
     return top1.avg, top5.avg

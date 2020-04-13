@@ -53,12 +53,12 @@ def print_dataset_info(path):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Pruning filters for efficient ConvNets')
+    parser = argparse.ArgumentParser()
     parser.add_argument('--data_path', type=str, default='/home/ubuntu/datasets/imagenet')
 
     args = parser.parse_args()
 
-    data_path = args.data_path
+    trainprep(args.data_path)
+    valprep(args.data_path)
 
     print_dataset_info(data_path)
-    # trainprep(data_path)
