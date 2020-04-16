@@ -37,6 +37,7 @@ class APoZ:
             raise ValueError(f"{output.dim()} dimension is Not Supported")
 
         self.apoz[self.idx] += percentage_zero.mean(dim=0).cpu().numpy()  # sum(batch_size, channels) / len(batch_size)
+
         self.idx += 1
 
         if self.idx == self.num_layer:
@@ -58,4 +59,4 @@ class APoZ:
 
         print(f"top1 : {top1} top5 : {top5}")
 
-        return self.apoz / VALID_LEN
+        return self.apoz / len(loader)

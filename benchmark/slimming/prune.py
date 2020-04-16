@@ -3,22 +3,20 @@ import sys
 import torch
 import argparse
 import torch.nn as nn
+import torch.backends.cudnn as cudnn
 from torchvision import datasets
 from torchvision import transforms
 
 sys.path.append(os.path.dirname('.'))
 
-from benchmark.trimming.vgg import vgg16
-from benchmark.trimming.apoz import APoZ
-from benchmark.helper import save_pkl
-from benchmark.model_tools import show_summary
+from benchmark.slimming.vgg import vgg16_bn
 
 parser = argparse.ArgumentParser(description='Pruning filters for efficient ConvNets')
 parser.add_argument('--data_path', type=str, default='/home/ubuntu/datasets/imagenet',
                     help='Path to root dataset folder ')
 parser.add_argument('--save_path', type=str, default='./apoz_prune_model.pth',
                     help='Path to model save')
-parser.add_argument('--batch_size', type=int, default=10)
+parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--device', '-d', type=str, default='cuda',
                     help='select [cpu / cuda]')
 args = parser.parse_args()
@@ -39,11 +37,24 @@ val_loader = torch.utils.data.DataLoader(val_dataset,
                                          batch_size=args.batch_size,
                                          pin_memory=True)
 
-model = vgg16(pretrained=True).to(args.device)
+model = vgg16_bn(pretrained=False).to(args.device)
+cudnn.benchmark = True
 
-show_summary(model)
+total = 0
+# 64 x 2, 128 x 2, 256 x 3, 512 x 6, 4096 x 2
+for m in model.modules():
+    if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
+        total += m.weight.data.shape[0]
 
-criterion = nn.CrossEntropyLoss().cuda()
-apoz = APoZ(model).get_apoz(val_loader, criterion)
+# batch norm weight save
+# y = (x - mean(x)) / sqrt(var(x) + epsilon) * gamma(weight) + alpha(bias)
 
-save_pkl(apoz, './vgg_apoz.pkl')
+bn = torch.zeros(total)
+index = 0
+
+for m in model.modules():
+    if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
+        size = m.weight.data.shape[0]
+        bn[index:(index+size)] = m.weight.data.abs().clone()
+
+        index += size

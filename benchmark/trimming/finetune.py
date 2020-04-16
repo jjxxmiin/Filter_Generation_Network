@@ -23,6 +23,4 @@ model = vgg16(pretrained=True).to(args.device)
 apoz = load_pkl('./vgg_apoz.pkl')
 
 for p in apoz:
-    print(p.mean())
-
-
+    print(100 - p.mean() * 100)
