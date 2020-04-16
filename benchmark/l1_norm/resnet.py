@@ -7,6 +7,7 @@ import torch.utils.model_zoo as model_zoo
 
 model_urls = {
     'resnet34': 'https://download.pytorch.org/models/resnet34-333f7ec4.pth',
+    'resnet50': 'https://download.pytorch.org/models/resnet50-19c8e357.pth',
 }
 
 
@@ -52,14 +53,14 @@ class BasicBlock(nn.Module):
 class Bottleneck(nn.Module):
     expansion = 4
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
+    def __init__(self, inplanes, planes, cfg, stride=1, downsample=None):
         super(Bottleneck, self).__init__()
-        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(planes)
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride,
+        self.conv1 = nn.Conv2d(inplanes, cfg, kernel_size=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(cfg)
+        self.conv2 = nn.Conv2d(cfg, cfg, kernel_size=3, stride=stride,
                                padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(planes)
-        self.conv3 = nn.Conv2d(planes, planes * 4, kernel_size=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(cfg)
+        self.conv3 = nn.Conv2d(cfg, planes * 4, kernel_size=1, bias=False)
         self.bn3 = nn.BatchNorm2d(planes * 4)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
@@ -111,8 +112,8 @@ class ResNet(nn.Module):
         count += layers[2]
         self.layer4 = self._make_layer(block, 512, layers[3], cfg[count:count+layers[3]], stride=2)
         self.avgpool = nn.AvgPool2d(7, stride=1)
-        # self.fc = nn.Linear(512 * block.expansion, num_classes)
-        self.fc = nn.Linear(cfg[-1], num_classes)
+
+        self.fc = nn.Linear(512 * block.expansion, num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -162,6 +163,13 @@ def resnet34(pretrained=False, **kwargs):
     model = ResNet(BasicBlock, [3, 4, 6, 3], **kwargs)
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['resnet34']))
+    return model
+
+
+def resnet50(pretrained=False, **kwargs):
+    model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
+    if pretrained:
+        model.load_state_dict(model_zoo.load_url(model_urls['resnet50']))
     return model
 
 

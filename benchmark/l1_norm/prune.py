@@ -37,8 +37,7 @@ prune_prob = {
     'B': [0.5, 0.6, 0.4, 0.0],
 }
 
-
-model = resnet34(pretrained=True)
+model = resnet34(pretrained=True).to(args.device)
 model = torch.nn.DataParallel(model).to(args.device)
 cudnn.benchmark = True
 
@@ -53,14 +52,17 @@ cfg_mask = []
 # Search
 for m in model.modules():
     if isinstance(m, nn.Conv2d):
-        if m.kernel_size == (1,1):
+        if m.kernel_size == (1, 1):
             continue
         out_channels = m.weight.data.shape[0]
+
         if layer_id in skip[args.v]:
             cfg_mask.append(torch.ones(out_channels))
             cfg.append(out_channels)
             layer_id += 1
+
             continue
+
         if layer_id % 2 == 0:
             # 64
             if layer_id <= 6:
@@ -77,7 +79,7 @@ for m in model.modules():
 
             prune_prob_stage = prune_prob[args.v][stage]
             weight_copy = m.weight.data.abs().clone().cpu().numpy()
-            L1_norm = np.sum(weight_copy, axis=(1,2,3))
+            L1_norm = np.sum(weight_copy, axis=(1, 2, 3))
             num_keep = int(out_channels * (1 - prune_prob_stage))
             arg_max = np.argsort(L1_norm)
             arg_max_rev = arg_max[::-1][:num_keep]

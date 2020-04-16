@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import argparse
-import torchvision
 from torchvision import datasets, transforms
 from PIL import ImageFile
 
@@ -81,9 +80,6 @@ optimizer = torch.optim.SGD(model.parameters(),
                             args.lr,
                             weight_decay=1e-4)
 
-# first valid
-# valid(model, valid_loader, criterion)
-
 best_top1 = 0
 
 for e in range(args.epoch):
@@ -91,11 +87,11 @@ for e in range(args.epoch):
           train_loader,
           criterion,
           optimizer,
-          f"EPOCH : [{e} / {args.epoch}]")
+          f"EPOCH : [{e + 1} / {args.epoch}]")
 
     top1, top5 = valid(model,
-                        valid_loader,
-                        criterion)
+                       valid_loader,
+                       criterion)
 
     logger.info(f"top1 : {top1} / top5 : {top5}")
 

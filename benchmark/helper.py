@@ -1,10 +1,8 @@
-import os
 import time
+import pickle
 import logging
 import torch
-import torch.nn as nn
 
-from tqdm import tqdm
 from logging import handlers
 
 
@@ -95,6 +93,10 @@ def train(model, train_loader, criterion, optimizer, epoch_log):
         top1.update(prec1[0], input.size(0))
         top5.update(prec5[0], input.size(0))
 
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
@@ -121,6 +123,7 @@ def valid(model, valid_loader, criterion):
     valid_iter = len(valid_loader)
 
     for i, (input, target) in enumerate(valid_loader):
+        input = input.cuda(async=True)
         target = target.cuda(async=True)
         input_var = torch.autograd.Variable(input, volatile=True)
         target_var = torch.autograd.Variable(target, volatile=True)
@@ -147,3 +150,15 @@ def valid(model, valid_loader, criterion):
     print(f' * Prec@1 {top1.avg:.3f} Prec@5 {top5.avg:.3f} \n')
 
     return top1.avg, top5.avg
+
+
+def save_pkl(data, path):
+    with open(path, 'wb') as f:
+        pickle.dump(data, f)
+
+
+def load_pkl(path):
+    with open(path, 'rb') as f:
+        data = pickle.load(f)
+
+    return data
