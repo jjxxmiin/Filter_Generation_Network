@@ -13,9 +13,12 @@
 
 ```shell script
 Before Pruning
+Acc@1: 71.59 
+Acc@5: 90.38
 
 After Pruning
-
+Acc@1: 70.37
+Acc@5: 89.76
 ```
 
 ### Fine tune

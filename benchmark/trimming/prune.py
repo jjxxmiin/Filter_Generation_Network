@@ -31,6 +31,13 @@ module_name = ['Conv 1-1', 'Conv 1-2', 'Conv 2-1', 'Conv 2-2', 'Conv 3-1',
                'Conv 3-2', 'Conv 3-3', 'Conv 4-1', 'Conv 4-2', 'Conv 4-3',
                'Conv 5-1', 'Conv 5-2', 'Conv 5-3', 'FC 6', 'FC 7']
 
+rate = [(488, 3477),
+        (451, 2937),
+        (430, 2479),
+        (420, 2121),
+        (400, 1787),
+        (390, 1513)]
+
 # train/valid dataset
 val_transform = transforms.Compose([
     transforms.Resize(256),
@@ -67,24 +74,19 @@ for n, p in zip(module_name, apoz):
 # Conv 5-3, FC 6
 mask = []
 
-rate = [(488, 3477),
-        (451, 2937),
-        (430, 2479),
-        (420, 2121),
-        (400, 1787),
-        (390, 1513)]
-
 for i, p in enumerate(apoz[-3:-1]):
     sorted_arg = np.argsort(p)
     mask.append(sorted_arg < rate[0][i])
 
-# Conv 5-3 [output], FC 6 [input, output], FC 7 [input]
+# Conv 5-3 [output]
 model.features[-3] = conv_post_mask(model.features[-3], mask[0])
+# FC 6 [input, output]
 model.classifier[0] = linear_mask(model.classifier[0], mask[0], mask[1])
+# FC 7 [input]
 model.classifier[3] = linear_pre_mask(model.classifier[3], mask[1])
 
 torch.save({'cfg': ['Conv 5-3', 'FC 6'],
-            'rate': rate,
+            'mask': mask,
             'state_dict': model.state_dict()},
              args.save_path + '.tar')
 
@@ -92,4 +94,3 @@ acc_top1, acc_top5 = valid(model, valid_loader, criterion)
 
 print(f"Acc@1: {acc_top1} \n"
       f"Acc@5: {acc_top5} \n")
-

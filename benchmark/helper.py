@@ -80,6 +80,7 @@ def train(model, train_loader, criterion, optimizer, epoch_log):
     for i, (input, target) in enumerate(train_loader):
         data_time.update(time.time() - end)
 
+        input = input.cuda(async=True)
         target = target.cuda(async=True)
         input_var = torch.autograd.Variable(input, volatile=True)
         target_var = torch.autograd.Variable(target, volatile=True)
