@@ -28,15 +28,13 @@ class APoZ:
 
     def get_zero_percent_hook(self, module, input, output):
         if output.dim() == 4:
-            percentage_zero = (output == 0).sum(dim=(2, 3)).float() / (output.size(2) * output.size(3))
-
+            p_zero = (output == 0).sum(dim=(2, 3)).float() / (output.size(2) * output.size(3))
+            self.apoz[self.idx] += p_zero.mean(dim=0).cpu().numpy()
         elif output.dim() == 2:
-            percentage_zero = (output == 0).sum(dim=1).float() / output.size(1)  # batch x 1
-
+            p_zero = (output == 0).sum(dim=0).float() / output.size(0)
+            self.apoz[self.idx] += p_zero.cpu().numpy()
         else:
             raise ValueError(f"{output.dim()} dimension is Not Supported")
-
-        self.apoz[self.idx] += percentage_zero.mean(dim=0).cpu().numpy()  # sum(batch_size, channels) / len(batch_size)
 
         self.idx += 1
 
@@ -49,7 +47,7 @@ class APoZ:
                 module.register_forward_hook(self.get_zero_percent_hook)
 
         for module in self.model.classifier.modules():
-            if type(module) == nn.Linear:
+            if type(module) == nn.ReLU:
                 module.register_forward_hook(self.get_zero_percent_hook)
 
     def get_apoz(self, loader, criterion):

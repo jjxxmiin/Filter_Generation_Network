@@ -70,7 +70,7 @@ def make_layers(cfg, batch_norm=False):
 
 
 feature_cfgs = [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M']
-classifier_cfgs = [4096, 4096, 1000]
+classifier_cfgs = [4096, 4096]
 
 
 def _vgg(arch, batch_norm, pretrained, progress, **kwargs):
