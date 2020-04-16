@@ -47,7 +47,7 @@ def print_dataset_info(path):
         num_total_data = 0
 
         for data_path in os.listdir(item_path):
-            num_total_data += len(os.path.join(item_path, data_path))
+            num_total_data += len(os.listdir(os.path.join(item_path, data_path)))
 
         print(f"  + NUM DATA - {num_total_data}")
 
@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    trainprep(args.data_path)
-    valprep(args.data_path)
+    # trainprep(args.data_path)
+    # valprep(args.data_path)
 
-    print_dataset_info(data_path)
+    print_dataset_info(args.data_path)
