@@ -6,8 +6,6 @@
 
 - Simple
 
-### Apoz
-
 ### Pruning
 
 ```shell script
