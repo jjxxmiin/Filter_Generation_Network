@@ -17,7 +17,7 @@ from benchmark.model_tools import *
 parser = argparse.ArgumentParser(description='Pruning filters for efficient ConvNets')
 parser.add_argument('--data_path', type=str, default='/home/ubuntu/datasets/imagenet',
                     help='Path to root dataset folder ')
-parser.add_argument('--save_path', type=str, default='./l1_prune_model.pth',
+parser.add_argument('--save_path', type=str, default='./checkpoint/l1_prune_model.pth.tar',
                     help='Path to model save')
 parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--device', '-d', type=str, default='cuda',
@@ -163,7 +163,7 @@ for [m0, m1] in zip(model.modules(), prune_model.modules()):
 
 torch.save({'cfg': cfg,
             'state_dict': prune_model.state_dict()},
-             args.save_path + '.tar')
+             args.save_path)
 
 # valid dataset
 transformer = transforms.Compose([transforms.Resize(256),

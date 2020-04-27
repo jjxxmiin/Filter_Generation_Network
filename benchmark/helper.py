@@ -153,6 +153,13 @@ def valid(model, valid_loader, criterion):
     return top1.avg, top5.avg
 
 
+def adjust_learning_rate(optimizer, lr, epoch):
+    """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
+    lr = lr * (0.1 ** (epoch // 30))
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
+
+
 def save_pkl(data, path):
     with open(path, 'wb') as f:
         pickle.dump(data, f)

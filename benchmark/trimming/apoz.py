@@ -3,8 +3,6 @@ import torch.nn as nn
 from benchmark.trimming.vgg import feature_cfgs, classifier_cfgs
 from benchmark.helper import valid
 
-VALID_LEN = 50000
-
 
 class APoZ:
     def __init__(self, model):

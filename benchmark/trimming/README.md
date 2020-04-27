@@ -5,7 +5,7 @@
 ## Benchmark
 
 - Simple
-- 1 layer Conv, 1 layer fc
+- pruning layer : `Conv 5-3`, `FC 6`
 
 ### Apoz
 
@@ -25,9 +25,14 @@ Acc@5: 89.76
 
 ```shell script
 Before Fine tune
+Acc@1: 70.37
+Acc@5: 89.76
 
 After Fine tune
 
+1 Epoch
+Acc@1 70.57
+Acc@5 89.88
 ```
 
 ## Reference

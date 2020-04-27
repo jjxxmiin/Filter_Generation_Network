@@ -10,7 +10,7 @@ from PIL import ImageFile
 sys.path.append(os.path.dirname('.'))
 
 from benchmark.l1_norm.resnet import resnet34
-from benchmark.helper import train, valid, accuracy, get_logger
+from benchmark.helper import train, valid, get_logger
 
 # setting
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -18,7 +18,7 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 parser = argparse.ArgumentParser(description='Pruning filters for efficient ConvNets')
 parser.add_argument('--data_path', type=str, default='/home/ubuntu/datasets/imagenet',
                     help='Path to root dataset folder ')
-parser.add_argument('--save_path', type=str, default='./l1_fine_tune_model.pth',
+parser.add_argument('--save_path', type=str, default='./checkpoint/l1_fine_tune_model.pth.tar',
                     help='Path to model save')
 parser.add_argument('--prune_path', '-p', type=str, default='./checkpoint/l1_prune_model.pth.tar')
 parser.add_argument('--lr', type=float, default=0.001)
@@ -28,7 +28,7 @@ parser.add_argument('--device', '-d', type=str, default='cuda',
                     help='select [cpu / cuda]')
 args = parser.parse_args()
 
-logger = get_logger('./log.log')
+logger = get_logger('./l1norm.log')
 
 # train/valid dataset
 train_transform = transforms.Compose([
@@ -69,8 +69,7 @@ valid_loader = torch.utils.data.DataLoader(valid_dataset,
 
 # load prune model
 checkpoint = torch.load(args.prune_path)
-model = resnet34(cfg=checkpoint['cfg'])
-model = torch.nn.DataParallel(model).to(args.device)
+model = resnet34(cfg=checkpoint['cfg']).to(args.device)
 cudnn.benchmark = True
 
 model.load_state_dict(checkpoint['state_dict'])
@@ -99,4 +98,4 @@ for e in range(args.epoch):
         best_top1 = top1
 
         torch.save({'state_dict': model.state_dict()},
-                   args.save_path + '.tar')
+                   args.save_path)

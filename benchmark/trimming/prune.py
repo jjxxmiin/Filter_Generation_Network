@@ -15,12 +15,12 @@ from benchmark.helper import save_pkl, load_pkl, valid
 from benchmark.model_tools import show_summary
 from benchmark.converter import conv_post_mask, linear_mask, linear_pre_mask
 
-parser = argparse.ArgumentParser(description='Pruning filters for efficient ConvNets')
+parser = argparse.ArgumentParser(description='Network Trimming Pruning')
 parser.add_argument('--data_path', type=str, default='/home/ubuntu/datasets/imagenet',
                     help='Path to root dataset folder ')
-parser.add_argument('--save_path', type=str, default='./apoz_prune_model.pth',
+parser.add_argument('--save_path', type=str, default='./checkpoint/apoz_prune_model.pth.tar',
                     help='Path to model save')
-parser.add_argument('--apoz_path', type=str, default='./vgg_apoz_fc.pkl',
+parser.add_argument('--apoz_path', type=str, default='./checkpoint/vgg_apoz_fc.pkl',
                     help='Path to apoz pkl')
 parser.add_argument('--batch_size', type=int, default=10)
 parser.add_argument('--device', '-d', type=str, default='cuda',
@@ -88,7 +88,7 @@ model.classifier[3] = linear_pre_mask(model.classifier[3], mask[1])
 torch.save({'cfg': ['Conv 5-3', 'FC 6'],
             'mask': mask,
             'state_dict': model.state_dict()},
-             args.save_path + '.tar')
+             args.save_path)
 
 acc_top1, acc_top5 = valid(model, valid_loader, criterion)
 
