@@ -1,9 +1,8 @@
 import os
-import sys
 import copy
 import numpy as np
 import torch
-from torchvision import models, transforms
+from torchvision import models
 from PIL import Image
 
 

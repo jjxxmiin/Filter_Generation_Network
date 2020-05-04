@@ -1,17 +1,13 @@
-import torch
 import argparse
 
 from torch import nn, optim, utils
 from torchvision import datasets, transforms
-from lib.models.cifar10.FGN import FGN
+from lib.models.cifar10.vgg import VGG
 from lib.helper import ClassifyTrainer, LR_Scheduler
 
-torch.manual_seed(20200504)
-torch.cuda.manual_seed(20200504)
-
-parser = argparse.ArgumentParser(description='MNIST')
+parser = argparse.ArgumentParser(description='CIFAR10')
 parser.add_argument('--device', type=str, default='cuda')
-parser.add_argument('--lr', type=float, default=0.001)
+parser.add_argument('--lr', type=float, default=0.01)
 parser.add_argument('--epoch', type=int, default=200)
 parser.add_argument('--batch_size', type=int, default=128)
 parser.add_argument('--save_path', type=str, default='./checkpoint/cifar10.pth')
@@ -19,39 +15,35 @@ parser.add_argument('--save_path', type=str, default='./checkpoint/cifar10.pth')
 args = parser.parse_args()
 
 # augmentation
-train_transformer = transforms.Compose([transforms.Grayscale(3),
+train_transformer = transforms.Compose([transforms.RandomHorizontalFlip(),
+                                        transforms.RandomCrop(size=(32, 32), padding=4),
                                         transforms.ToTensor(),
                                         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
 
-test_transformer = transforms.Compose([transforms.Grayscale(3),
-                                       transforms.ToTensor(),
+test_transformer = transforms.Compose([transforms.ToTensor(),
                                        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
 
 # dataset / dataloader
-train_dataset = datasets.MNIST(root='../data',
-                               train=True,
-                               transform=train_transformer,
-                               download=True)
+train_dataset = datasets.CIFAR10(root='../data',
+                                 train=True,
+                                 transform=train_transformer,
+                                 download=True)
 
 train_loader = utils.data.DataLoader(train_dataset,
                                      batch_size=args.batch_size,
                                      shuffle=True)
 
-test_dataset = datasets.MNIST(root='../data',
-                              train=False,
-                              transform=test_transformer,
-                              download=True)
+test_dataset = datasets.CIFAR10(root='../data',
+                                train=False,
+                                transform=test_transformer,
+                                download=True)
 
 test_loader = utils.data.DataLoader(test_dataset,
                                     batch_size=args.batch_size,
                                     shuffle=True)
 
 # model
-print(f"CPU seed : {torch.initial_seed()} GPU seed : {torch.cuda.initial_seed()}")
-
-filters = torch.autograd.Variable(torch.ones(3, 3, 3)).to(args.device)
-
-model = FGN(filters).to(args.device)
+model = VGG('VGG16').to(args.device)
 
 # cost
 criterion = nn.CrossEntropyLoss().to(args.device)
