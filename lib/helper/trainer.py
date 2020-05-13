@@ -23,33 +23,34 @@ class AverageMeter(object):
 class ClassifyTrainer:
     def __init__(self,
                  model,
-                 train_loader,
-                 test_loader,
                  criterion,
-                 optimizer,
+                 train_loader=None,
+                 test_loader=None,
+                 optimizer=None,
                  scheduler=None,
                  device='cuda'):
 
         self.model = model
         self.train_loader = train_loader
         self.test_loader = test_loader
-        self.train_iter = len(train_loader)
-        self.test_iter = len(test_loader)
-
         self.criterion = criterion
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.device = device
 
-    def train(self, epoch):
+        self.e = 0
+
+    def train(self):
+        self.model.train()
+
+        train_iter = len(self.train_loader)
+
         loss_meter = AverageMeter()
         correct_meter = AverageMeter()
 
-        self.model.train()
-
-        for i, (images, labels) in tqdm(enumerate(self.train_loader), total=self.train_iter):
+        for i, (images, labels) in tqdm(enumerate(self.train_loader), total=train_iter):
             if self.scheduler is not None:
-                self.scheduler(self.optimizer, i, epoch)
+                self.scheduler(self.optimizer, i, self.e)
 
             images = images.to(self.device)
             labels = labels.to(self.device)
@@ -60,6 +61,8 @@ class ClassifyTrainer:
             # acc
             _, predicted = torch.max(pred, 1)
             correct_meter.update((predicted == labels).sum().item())
+
+
             # loss
             loss = self.criterion(pred, labels)
             loss_meter.update(loss.item())
@@ -71,15 +74,19 @@ class ClassifyTrainer:
         train_loss = loss_meter.avg
         train_correct = correct_meter.avg
 
+        self.e += 1
+
         return train_loss, train_correct
 
     def test(self):
+        self.model.eval()
+
+        test_iter = len(self.test_loader)
+
         loss_meter = AverageMeter()
         correct_meter = AverageMeter()
 
-        self.model.eval()
-
-        for i, (images, labels) in tqdm(enumerate(self.test_loader), total=self.test_iter):
+        for i, (images, labels) in tqdm(enumerate(self.test_loader), total=test_iter):
             images = images.to(self.device)
             labels = labels.to(self.device)
 

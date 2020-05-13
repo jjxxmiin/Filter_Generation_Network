@@ -1,6 +1,8 @@
 import os
+import piexif
 import tarfile
 import argparse
+
 from tqdm import tqdm
 
 
@@ -52,6 +54,14 @@ def print_dataset_info(path):
         print(f"  + NUM DATA - {num_total_data}")
 
 
+def remove_exif(path):
+    nfiles = 0
+    for filename in glob.iglob(os.path.join(path, 'train/**/*.JPEG'), recursive=True):
+        nfiles = nfiles + 1
+        print("About to process file %d, which is %s." % (nfiles, filename))
+        piexif.remove(filename)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_path', type=str, default='/home/ubuntu/datasets/imagenet')
@@ -60,5 +70,6 @@ if __name__ == "__main__":
 
     # trainprep(args.data_path)
     # valprep(args.data_path)
-
+    # print_dataset_info(args.data_path)
+    # remove_exif(args.data_path)
     print_dataset_info(args.data_path)
