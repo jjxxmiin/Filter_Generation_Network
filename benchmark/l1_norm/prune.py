@@ -10,9 +10,9 @@ from torchvision import transforms
 
 sys.path.append(os.path.dirname('.'))
 
-from benchmark.l1_norm.resnet import resnet34
-from benchmark.helper import valid
-from benchmark.model_tools import *
+from evaluation.l1_norm.resnet import resnet34
+from evaluation.helper import valid
+from evaluation.model_tools import *
 
 parser = argparse.ArgumentParser(description='Pruning filters for efficient ConvNets')
 parser.add_argument('--data_path', type=str, default='/home/ubuntu/datasets/imagenet',

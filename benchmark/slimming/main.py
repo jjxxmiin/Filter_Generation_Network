@@ -11,8 +11,8 @@ from torchvision import transforms
 
 sys.path.append(os.path.dirname('.'))
 
-from benchmark.slimming.vgg import vgg16_bn
-from benchmark.helper import get_logger, accuracy, valid, AverageMeter
+from evaluation.slimming.vgg import vgg16_bn
+from evaluation.helper import get_logger, accuracy, valid, AverageMeter
 
 
 def updateBN(model, sparsity):

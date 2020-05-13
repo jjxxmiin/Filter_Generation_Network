@@ -9,8 +9,8 @@ from PIL import ImageFile
 
 sys.path.append(os.path.dirname('.'))
 
-from benchmark.l1_norm.resnet import resnet34
-from benchmark.helper import train, valid, get_logger
+from evaluation.l1_norm.resnet import resnet34
+from evaluation.helper import train, valid, get_logger
 
 # setting
 ImageFile.LOAD_TRUNCATED_IMAGES = True

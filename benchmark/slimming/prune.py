@@ -7,7 +7,7 @@ import torch.backends.cudnn as cudnn
 
 sys.path.append(os.path.dirname('.'))
 
-from benchmark.slimming.vgg import vgg16_bn
+from evaluation.slimming.vgg import vgg16_bn
 
 parser = argparse.ArgumentParser(description='Network Slimming')
 parser.add_argument('--data_path', type=str, default='/home/ubuntu/datasets/imagenet',

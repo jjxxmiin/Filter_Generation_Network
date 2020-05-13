@@ -1,7 +1,7 @@
 import numpy as np
 import torch.nn as nn
-from benchmark.trimming.vgg import feature_cfgs, classifier_cfgs
-from benchmark.helper import valid
+from evaluation.trimming.vgg import feature_cfgs, classifier_cfgs
+from evaluation.helper import valid
 
 
 class APoZ:

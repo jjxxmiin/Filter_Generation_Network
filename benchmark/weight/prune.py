@@ -8,7 +8,7 @@ from torchvision import models, transforms, datasets
 
 sys.path.append(os.path.dirname('.'))
 
-from benchmark.helper import valid, train
+from evaluation.helper import valid, train
 
 parser = argparse.ArgumentParser(description='Weight Pruning')
 parser.add_argument('--data_path', type=str, default='/home/ubuntu/datasets/imagenet',

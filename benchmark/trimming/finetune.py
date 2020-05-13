@@ -9,9 +9,9 @@ from PIL import ImageFile
 
 sys.path.append(os.path.dirname('.'))
 
-from benchmark.trimming.vgg import vgg16
-from benchmark.helper import train, valid, get_logger
-from benchmark.converter import conv_post_mask, linear_mask, linear_pre_mask
+from evaluation.trimming.vgg import vgg16
+from evaluation.helper import train, valid, get_logger
+from evaluation.converter import conv_post_mask, linear_mask, linear_pre_mask
 
 # setting
 ImageFile.LOAD_TRUNCATED_IMAGES = True

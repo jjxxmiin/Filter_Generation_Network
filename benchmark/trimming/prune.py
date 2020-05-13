@@ -9,11 +9,11 @@ from torchvision import transforms
 
 sys.path.append(os.path.dirname('.'))
 
-from benchmark.trimming.vgg import vgg16
-from benchmark.trimming.apoz import APoZ
-from benchmark.helper import save_pkl, load_pkl, valid
-from benchmark.model_tools import show_summary
-from benchmark.converter import conv_post_mask, linear_mask, linear_pre_mask
+from evaluation.trimming.vgg import vgg16
+from evaluation.trimming.apoz import APoZ
+from evaluation.helper import save_pkl, load_pkl, valid
+from evaluation.model_tools import show_summary
+from evaluation.converter import conv_post_mask, linear_mask, linear_pre_mask
 
 parser = argparse.ArgumentParser(description='Network Trimming Pruning')
 parser.add_argument('--data_path', type=str, default='/home/ubuntu/datasets/imagenet',
