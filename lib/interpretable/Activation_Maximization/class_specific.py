@@ -51,7 +51,7 @@ def save_image(im, path):
     im.save(path)
 
 
-if not os.path.exists('./generated'):
+if not os.path.exists('generated'):
     os.makedirs('./generated')
 
 DEVICE = 'cuda'
