@@ -1,5 +1,3 @@
-# Pruning
-
 # DATASETS
 
 - imagenet
