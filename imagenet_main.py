@@ -23,6 +23,7 @@ parser.add_argument('--edge_filter_type', type=str, default='conv')
 parser.add_argument('--texture_filter_type', type=str, default='normal')
 parser.add_argument('--object_filter_type', type=str, default='normal')
 parser.add_argument('--save_path', type=str, default='./checkpoint')
+parser.add_argument('--load_path', type=str)
 parser.add_argument('--log_path', type=str, default='./imagenet.log')
 parser.set_defaults(feature=True)
 args = parser.parse_args()
@@ -76,6 +77,9 @@ filter_types = [args.edge_filter_type,
 # model
 if args.model_name == 'vgg16_bn':
     model = fvgg16_bn(filter_types=filter_types).to(args.device)
+
+if args.load_path is not None:
+    model.state_dict(torch.load(args.load_path))
 
 cudnn.benchmark = True
 

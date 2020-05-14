@@ -2,7 +2,7 @@ import argparse
 import torch
 from torch import nn, optim, utils
 from torchvision import datasets, transforms
-from lib.models.cifar10 import FVGG, FResNet18
+from lib.models.cifar10 import fvgg16_bn, fresnet18
 from lib.helper import ClassifyTrainer
 from lib.utils import get_logger, save_pkl
 
@@ -10,13 +10,13 @@ parser = argparse.ArgumentParser(description='CIFAR10')
 parser.add_argument('--model_name', type=str, default='vgg16')
 parser.add_argument('--datasets', type=str, default='cifar10')
 parser.add_argument('--device', type=str, default='cuda')
-parser.add_argument('--lr', type=float, default=0.01)
+parser.add_argument('--lr', type=float, default=0.001)
 parser.add_argument('--epoch', type=int, default=200)
 parser.add_argument('--num_filters', type=int, default=3)
 parser.add_argument('--batch_size', type=int, default=256)
-parser.add_argument('--edge_filter_type', type=str, default='custom')
-parser.add_argument('--texture_filter_type', type=str, default='normal')
-parser.add_argument('--object_filter_type', type=str, default='normal')
+parser.add_argument('--edge_filter_type', type=str, default='conv')
+parser.add_argument('--texture_filter_type', type=str, default='conv')
+parser.add_argument('--object_filter_type', type=str, default='conv')
 parser.add_argument('--save_path', type=str, default='./checkpoint')
 parser.add_argument('--log_path', type=str, default='./cifar10.log')
 parser.set_defaults(feature=True)
@@ -61,18 +61,10 @@ filter_types = [args.edge_filter_type,
 
 # model
 if args.model_name == 'vgg16':
-    model = FVGG('VGG16',
-                 num_filters=args.num_filters,
-                 filter_types=filter_types).to(args.device)
-
-elif args.model_name == 'vgg11':
-    model = FVGG('VGG11',
-                 num_filters=args.num_filters,
-                 filter_types=filter_types).to(args.device)
+    model = fvgg16_bn(filter_types=filter_types).to(args.device)
 
 elif args.model_name == 'resnet18':
-    model = FResNet18(filter_types=filter_types).to(args.device)
-
+    model = fresnet18(filter_types=filter_types).to(args.device)
 
 logger.info(f'MODEL : {args.model_name} \n'
             f'NUM Filter : {args.num_filters} \n'
