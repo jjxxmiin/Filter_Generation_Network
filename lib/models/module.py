@@ -6,18 +6,21 @@ import torch.nn.functional as F
 
 
 class GFLayer(torch.nn.Module):
-    def __init__(self, in_ch, out_ch, filters, stride, padding=1, bias=True):
+    def __init__(self, in_ch, out_ch, filters, stride, padding=1, groups=1, bias=True):
         super(GFLayer, self).__init__()
         self.out_ch = out_ch
         self.in_ch = in_ch
         self.filters = filters
         self.stride = stride
         self.padding = padding
+        self.groups = groups
         self.weights = nn.Parameter(torch.Tensor(out_ch, in_ch, self.filters.size(0)))
+
         if bias:
             self.bias = nn.Parameter(torch.Tensor(out_ch))
         else:
             self.register_parameter('bias', None)
+
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -33,7 +36,7 @@ class GFLayer(torch.nn.Module):
                  self.weights.view(self.out_ch, self.in_ch, self.filters.size(0), 1, 1).repeat(1, 1, 1, 3, 3)
         f = f.sum(2)
 
-        output = F.conv2d(x, f, stride=self.stride, padding=self.padding)
+        output = F.conv2d(x, f, stride=self.stride, padding=self.padding, groups=self.groups)
 
         return output
 
