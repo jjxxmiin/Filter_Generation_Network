@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 from lib.models.module import GFLayer, get_filter
 
@@ -22,7 +21,7 @@ class BasicBlock(nn.Module):
                 GFLayer(in_channels, out_channels, filters=filters, stride=stride, padding=1),
                 nn.BatchNorm2d(out_channels),
                 nn.ReLU(inplace=True),
-                GFLayer(out_channels, out_channels * BasicBlock.expansion, filters=filters, stride=stride, padding=1),
+                GFLayer(out_channels, out_channels * BasicBlock.expansion, filters=filters, stride=1, padding=1),
                 nn.BatchNorm2d(out_channels * BasicBlock.expansion)
             )
 

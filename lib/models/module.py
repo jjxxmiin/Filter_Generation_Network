@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 
 class GFLayer(torch.nn.Module):
-    def __init__(self, in_ch, out_ch, filters, stride, padding=1, groups=1, bias=True):
+    def __init__(self, in_ch, out_ch, filters, stride, padding, groups=1, bias=True):
         super(GFLayer, self).__init__()
         self.out_ch = out_ch
         self.in_ch = in_ch
@@ -14,7 +14,8 @@ class GFLayer(torch.nn.Module):
         self.stride = stride
         self.padding = padding
         self.groups = groups
-        self.weights = nn.Parameter(torch.Tensor(out_ch, in_ch, self.filters.size(0)))
+
+        self.weights = nn.Parameter(torch.Tensor(out_ch, in_ch // groups, self.filters.size(0)))
 
         if bias:
             self.bias = nn.Parameter(torch.Tensor(out_ch))
@@ -24,7 +25,7 @@ class GFLayer(torch.nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
-        n = self.in_ch * 3 * 3
+        n = self.in_ch * self.filters.size(1) * self.filters.size(2)
         stdv = 1. / math.sqrt(n)
         self.weights.data.uniform_(-stdv, stdv)
 
@@ -33,7 +34,7 @@ class GFLayer(torch.nn.Module):
 
     def forward(self, x):
         f = self.filters.view(1, 1, self.filters.size(0), self.filters.size(1), self.filters.size(2)) * \
-                 self.weights.view(self.out_ch, self.in_ch, self.filters.size(0), 1, 1).repeat(1, 1, 1, 3, 3)
+                 self.weights.view(self.out_ch, self.in_ch // self.groups, self.filters.size(0), 1, 1).repeat(1, 1, 1, self.filters.size(1), self.filters.size(2))
         f = f.sum(2)
 
         output = F.conv2d(x, f, stride=self.stride, padding=self.padding, groups=self.groups)
@@ -84,6 +85,9 @@ def get_filter(filter_type, num_filters, device='cuda'):
                                                         [[0, 0, 0], [0, 0, 1], [0, 1, 1]],
                                                         [[1, 1, 0], [0, 0, 1], [0, 0, 0]],
                                                         [[0, 0, 0], [1, 0, 0], [1, 1, 0]]])).to(device)
+
+    elif filter_type == '1x1':
+        filters = torch.autograd.Variable(torch.randn(1, 1, 1)).to(device)
 
     else:
         print('Conv Filter')

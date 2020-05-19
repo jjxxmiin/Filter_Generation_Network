@@ -28,7 +28,7 @@ class LinearBottleNeck(nn.Module):
                 nn.BatchNorm2d(in_channels * t),
                 nn.ReLU6(inplace=True),
 
-                GFLayer(in_channels * t, in_channels * t, 3, stride=stride, padding=1, groups=in_channels * t),
+                GFLayer(in_channels * t, in_channels * t, filters=filters, stride=stride, padding=1, groups=in_channels * t),
                 nn.BatchNorm2d(in_channels * t),
                 nn.ReLU6(inplace=True),
 
@@ -64,13 +64,13 @@ class MobileNetV2(nn.Module):
         texture_filters = get_filter(filter_types[1], num_filters)
         object_filters = get_filter(filter_types[2], num_filters)
 
-        self.stage1 = LinearBottleNeck(32, 16, 1, filters=edge_filters, t=1)
-        self.stage2 = self._make_stage(2, 16, 24, 2, filters=texture_filters, t=6)
-        self.stage3 = self._make_stage(3, 24, 32, 2, filters=texture_filters, t=6)
-        self.stage4 = self._make_stage(4, 32, 64, 2, filters=texture_filters, t=6)
-        self.stage5 = self._make_stage(3, 64, 96, 1, filters=texture_filters, t=6)
-        self.stage6 = self._make_stage(3, 96, 160, 1, filters=texture_filters, t=6)
-        self.stage7 = LinearBottleNeck(160, 320, 1, filters=object_filters, t=6)
+        self.stage1 = LinearBottleNeck(32, 16, stride=1, filters=edge_filters, t=1)
+        self.stage2 = self._make_stage(2, 16, 24, stride=2, filters=texture_filters, t=6)
+        self.stage3 = self._make_stage(3, 24, 32, stride=2, filters=texture_filters, t=6)
+        self.stage4 = self._make_stage(4, 32, 64, stride=2, filters=texture_filters, t=6)
+        self.stage5 = self._make_stage(3, 64, 96, stride=1, filters=texture_filters, t=6)
+        self.stage6 = self._make_stage(3, 96, 160, stride=1, filters=texture_filters, t=6)
+        self.stage7 = LinearBottleNeck(160, 320, stride=1, filters=object_filters, t=6)
 
         self.conv1 = nn.Sequential(
             nn.Conv2d(320, 1280, 1),

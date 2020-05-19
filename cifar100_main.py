@@ -67,11 +67,10 @@ elif args.model_name == 'resnet18':
     model = fresnet18(filter_types=filter_types).to(args.device)
 
 elif args.model_name == 'mobilenet2':
-    model = fresnet18(filter_types=filter_types).to(args.device)
+    model = mobilenetv2(filter_types=filter_types).to(args.device)
 
-elif args.model_name == 'shufflenetv2':
-    model = fresnet18(filter_types=filter_types).to(args.device)
-
+elif args.model_name == 'shufflenet2':
+    model = shufflenetv2(filter_types=filter_types).to(args.device)
 
 logger.info(f'MODEL : {args.model_name} \n'
             f'NUM Filter : {args.num_filters} \n'
@@ -94,10 +93,10 @@ train_iter = len(train_loader)
 test_iter = len(test_loader)
 
 # optimizer/scheduler
-optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=1e-5)
+optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
 scheduler = optim.lr_scheduler.MultiStepLR(optimizer=optimizer,
-                                           milestones=[50, 100, 150],
-                                           gamma=0.1)
+                                           milestones=[60, 120, 180],
+                                           gamma=0.2)
 
 trainer = ClassifyTrainer(model,
                           criterion,
