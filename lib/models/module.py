@@ -80,15 +80,6 @@ def get_filter(filter_type, num_filters, device='cuda'):
                                                         [[-1, 2, -1], [-1, 2, -1], [-1, 2, -1]],
                                                         [[2, -1, -1], [-1, 2, -1], [-1, -1, 2]]])).to(device)
 
-    elif filter_type == 'custom':
-        filters = torch.autograd.Variable(torch.Tensor([[[1, 1, 0], [1, 0, 0], [0, 0, 0]],
-                                                        [[0, 0, 0], [0, 0, 1], [0, 1, 1]],
-                                                        [[1, 1, 0], [0, 0, 1], [0, 0, 0]],
-                                                        [[0, 0, 0], [1, 0, 0], [1, 1, 0]]])).to(device)
-
-    elif filter_type == '1x1':
-        filters = torch.autograd.Variable(torch.randn(1, 1, 1)).to(device)
-
     else:
         print('Conv Filter')
         filters = None
