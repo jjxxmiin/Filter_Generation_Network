@@ -2,3 +2,4 @@
 /datasets/tiny_imagenet/
 /models/
 /pkl/
+__pycache__

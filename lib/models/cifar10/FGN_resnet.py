@@ -79,7 +79,7 @@ class ResNet(nn.Module):
             self.conv1 = GFLayer(3, 64, filters=edge_filters, stride=1, padding=1)
 
         self.bn1 = nn.BatchNorm2d(64)
-        self.layer1 = self._make_layer(block, 64, num_blocks[0], filters=edge_filters, stride=1)
+        self.layer1 = self._make_layer(block, 64, num_blocks[0], filters=texture_filters, stride=1)
         self.layer2 = self._make_layer(block, 128, num_blocks[1], filters=texture_filters, stride=2)
         self.layer3 = self._make_layer(block, 256, num_blocks[2], filters=texture_filters, stride=2)
         self.layer4 = self._make_layer(block, 512, num_blocks[3], filters=object_filters, stride=2)
