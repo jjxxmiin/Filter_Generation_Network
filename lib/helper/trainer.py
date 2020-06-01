@@ -61,8 +61,6 @@ class ClassifyTrainer:
             # acc
             _, predicted = torch.max(pred, 1)
             correct_meter.update((predicted == labels).sum().item())
-
-
             # loss
             loss = self.criterion(pred, labels)
             loss_meter.update(loss.item())
@@ -84,26 +82,36 @@ class ClassifyTrainer:
         test_iter = len(self.test_loader)
 
         loss_meter = AverageMeter()
-        correct_meter = AverageMeter()
+        top1_meter = AverageMeter()
+        top5_meter = AverageMeter()
 
         for i, (images, labels) in tqdm(enumerate(self.test_loader), total=test_iter):
             images = images.to(self.device)
             labels = labels.to(self.device)
 
             # forward
-            pred = self.model(images)
-            # acc
-            _, predicted = torch.max(pred, 1)
-            correct_meter.update((predicted == labels).sum().item())
+            output = self.model(images)
+            # # acc
+            # _, predicted = torch.max(pred, 1)
+            # correct_meter.update((predicted == labels).sum().item())
+            _, pred = output.topk(5, 1, largest=True, sorted=True)
+
+            temp_labels = labels.view(labels.size(0), -1).expand_as(pred)
+            correct = pred.eq(temp_labels).float()
+
+            top1_meter.update(correct[:, :1].sum())
+            top5_meter.update(correct[:, :5].sum())
+
             # loss
-            loss = self.criterion(pred, labels)
+            loss = self.criterion(output, labels)
             loss_meter.update(loss.item())
 
         test_loss = loss_meter.avg
-        test_acc = correct_meter.avg
+        top1_acc = top1_meter.avg
+        top5_acc = top5_meter.avg
 
-        return test_loss, test_acc
+        return test_loss, top1_acc, top5_acc
 
     def save(self, save_path):
-        print("model saved")
+        print("MODEL SAVED")
         torch.save(self.model.state_dict(), save_path)

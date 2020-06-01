@@ -63,10 +63,10 @@ def print_inference_time(model, args, test_loader):
                               test_loader=test_loader)
 
     start = time.time()
-    test_loss, test_acc = trainer.test()
+    test_loss, test_top1_acc, test_top5_acc = trainer.test()
     end = time.time()
 
-    test_acc = test_acc / args.batch_size
+    test_top1_acc = test_top1_acc / args.batch_size
 
     total_time += end - start
 
@@ -76,9 +76,9 @@ def print_inference_time(model, args, test_loader):
           f' + TEXTURE Filter : {args.texture_filter_type} \n'
           f' + OBJECT Filter : {args.object_filter_type} \n'
           f' + Total Time : {total_time / args.batch_size} \n'
-          f' + TEST  [Loss / Acc] : [ {test_loss} / {test_acc} ] \n')
+          f' + TEST  [Loss / Top1@Acc / Top5@Acc] : [ {test_loss} / {test_top1_acc} / {test_top5_acc}] \n')
 
-    return test_acc
+    return test_top1_acc, test_top5_acc
 
 
 def print_model_param_nums(model):

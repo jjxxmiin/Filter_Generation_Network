@@ -31,8 +31,8 @@ class FVGG(nn.Module):
 
 
 def make_layers(cfg, filter_types, num_filters, batch_norm=False):
-    first = [0, 1]
-    middle = [3, 4, 6, 7, 8, 10, 11, 12]
+    first = [0, 1, 3, 4]
+    middle = [6, 7, 8, 10, 11, 12]
     last = [14, 15, 16]
 
     edge_filters = get_filter(filter_types[0], num_filters)

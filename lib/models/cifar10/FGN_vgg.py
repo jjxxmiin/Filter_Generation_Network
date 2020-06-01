@@ -24,7 +24,7 @@ class FVGG(nn.Module):
         return out
 
 
-def make_layers(cfg, filter_types, num_filters, batch_norm=False):
+def make_layers(cfg, filter_types, num_filters, stride, bias, batch_norm=False):
     first = [0, 1]
     middle = [3, 4, 6, 7, 8, 10, 11, 12]
     last = [14, 15, 16]
@@ -45,19 +45,19 @@ def make_layers(cfg, filter_types, num_filters, batch_norm=False):
             if edge_filters is None:
                 layers += [nn.Conv2d(input_channel, l, kernel_size=3, padding=1)]
             else:
-                layers += [GFLayer(input_channel, l, filters=edge_filters, stride=1, padding=1)]
+                layers += [GFLayer(input_channel, l, filters=edge_filters, stride=stride, padding=stride, bias=bias)]
 
         if i in middle:
             if texture_filters is None:
                 layers += [nn.Conv2d(input_channel, l, kernel_size=3, padding=1)]
             else:
-                layers += [GFLayer(input_channel, l, filters=texture_filters, stride=1, padding=1)]
+                layers += [GFLayer(input_channel, l, filters=texture_filters, stride=stride, padding=stride, bias=bias)]
 
         if i in last:
             if object_filters is None:
                 layers += [nn.Conv2d(input_channel, l, kernel_size=3, padding=1)]
             else:
-                layers += [GFLayer(input_channel, l, filters=object_filters, stride=1, padding=1)]
+                layers += [GFLayer(input_channel, l, filters=object_filters, stride=stride, padding=stride, bias=bias)]
 
         if batch_norm:
             layers += [nn.BatchNorm2d(l)]
@@ -68,5 +68,5 @@ def make_layers(cfg, filter_types, num_filters, batch_norm=False):
     return nn.Sequential(*layers)
 
 
-def fvgg16_bn(filter_types, num_filters=3):
-    return FVGG(make_layers(cfg['D'], filter_types, num_filters, batch_norm=True))
+def fvgg16_bn(filter_types, num_filters=3, stride=1, bias=True):
+    return FVGG(make_layers(cfg['D'], filter_types, num_filters, stride=stride, bias=bias, batch_norm=True))

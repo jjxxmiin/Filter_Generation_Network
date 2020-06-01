@@ -54,6 +54,7 @@ def get_filter(filter_type, num_filters, device='cuda'):
         filters = torch.autograd.Variable(torch.randn(num_filters, 3, 3)).to(device)
 
     elif filter_type == 'exp':
+        np.random.seed(20145170)
         filters = torch.autograd.Variable(torch.from_numpy(np.random.exponential(size=(num_filters, 3, 3))).float()).to(device)
 
     elif filter_type == 'sobel':

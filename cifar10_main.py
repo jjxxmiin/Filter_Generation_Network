@@ -10,13 +10,14 @@ parser = argparse.ArgumentParser(description='CIFAR10')
 parser.add_argument('--model_name', type=str, default='vgg16')
 parser.add_argument('--datasets', type=str, default='cifar10')
 parser.add_argument('--device', type=str, default='cuda')
-parser.add_argument('--lr', type=float, default=0.01)
-parser.add_argument('--epoch', type=int, default=200)
+parser.add_argument('--lr', type=float, default=0.1)
+parser.add_argument('--epoch', type=int, default=350)
+parser.add_argument('--stride', type=int, default=1)
 parser.add_argument('--num_filters', type=int, default=3)
 parser.add_argument('--batch_size', type=int, default=256)
-parser.add_argument('--edge_filter_type', type=str, default='conv')
-parser.add_argument('--texture_filter_type', type=str, default='conv')
-parser.add_argument('--object_filter_type', type=str, default='conv')
+parser.add_argument('--edge_filter_type', '-e', type=str, default='conv')
+parser.add_argument('--texture_filter_type', '-t', type=str, default='normal')
+parser.add_argument('--object_filter_type', '-o', type=str, default='normal')
 parser.add_argument('--save_path', type=str, default='./checkpoint')
 parser.add_argument('--log_path', type=str, default='./cifar10.log')
 parser.set_defaults(feature=True)
@@ -61,7 +62,7 @@ filter_types = [args.edge_filter_type,
 
 # model
 if args.model_name == 'vgg16':
-    model = fvgg16_bn(filter_types=filter_types).to(args.device)
+    model = fvgg16_bn(filter_types=filter_types, stride=args.stride, num_filters=args.num_filters).to(args.device)
 
 elif args.model_name == 'resnet18':
     model = fresnet18(filter_types=filter_types).to(args.device)
@@ -78,7 +79,8 @@ name = f'{args.datasets}_' \
        f'{args.num_filters}_' \
        f'{args.edge_filter_type}_' \
        f'{args.texture_filter_type}_' \
-       f'{args.object_filter_type}'
+       f'{args.object_filter_type}_' \
+       f'{args.stride}_'
 
 # cost
 criterion = nn.CrossEntropyLoss().to(args.device)
@@ -87,9 +89,10 @@ train_iter = len(train_loader)
 test_iter = len(test_loader)
 
 # optimizer/scheduler
-optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=1e-5)
+optimizer = optim.SGD(model.parameters(), lr=args.lr,
+                      momentum=0.9, weight_decay=5e-4)
 scheduler = optim.lr_scheduler.MultiStepLR(optimizer=optimizer,
-                                           milestones=[50, 100, 150],
+                                           milestones=[150, 250],
                                            gamma=0.1)
 
 trainer = ClassifyTrainer(model,
@@ -110,7 +113,7 @@ for e in range(args.epoch):
     scheduler.step()
 
     train_loss, train_acc = trainer.train()
-    test_loss, test_acc = trainer.test()
+    test_loss, test_acc, _ = trainer.test()
 
     train_acc = train_acc / args.batch_size
     test_acc = test_acc / args.batch_size

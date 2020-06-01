@@ -78,14 +78,20 @@ class ResNet(nn.Module):
         texture_filters = get_filter(filter_types[1], num_filters)
         object_filters = get_filter(filter_types[2], num_filters)
 
-        self.conv1 = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True))
+        if edge_filters is None:
+            self.conv1 = nn.Sequential(
+                             nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False),
+                             nn.BatchNorm2d(64),
+                             nn.ReLU(inplace=True))
+        else:
+            self.conv1 = nn.Sequential(
+                GFLayer(3, 64, filters=edge_filters, stride=1, padding=1, bias=False),
+                nn.BatchNorm2d(64),
+                nn.ReLU(inplace=True))
 
         # we use a different inputsize than the original paper
         # so conv2_x's stride is 1
-        self.conv2_x = self._make_layer(block, 64, num_block[0],  filters=edge_filters, stride=1)
+        self.conv2_x = self._make_layer(block, 64, num_block[0],  filters=texture_filters, stride=1)
         self.conv3_x = self._make_layer(block, 128, num_block[1], filters=texture_filters, stride=2)
         self.conv4_x = self._make_layer(block, 256, num_block[2], filters=texture_filters, stride=2)
         self.conv5_x = self._make_layer(block, 512, num_block[3], filters=object_filters, stride=2)
