@@ -1,8 +1,9 @@
+import os
 import argparse
 import torch
 from torch import nn, optim, utils
 from torchvision import datasets, transforms
-from lib.models.cifar100 import fvgg16_bn, fresnet18, shufflenetv2, mobilenetv2
+from lib.models.cifar100 import fvgg16_bn, fresnet18
 from lib.helper import ClassifyTrainer
 from lib.utils import get_logger, save_pkl
 
@@ -24,6 +25,9 @@ args = parser.parse_args()
 
 logger = get_logger(args.log_path)
 
+if not os.path.exists(args.save_path):
+    os.mkdir(args.save_path)
+
 torch.manual_seed(20145170)
 torch.cuda.manual_seed(20145170)
 
@@ -44,7 +48,6 @@ train_dataset = datasets.CIFAR100(root='../data',
 
 train_loader = utils.data.DataLoader(train_dataset,
                                      batch_size=args.batch_size,
-                                     num_workers=4,
                                      shuffle=True)
 
 test_dataset = datasets.CIFAR100(root='../data',
@@ -54,7 +57,6 @@ test_dataset = datasets.CIFAR100(root='../data',
 
 test_loader = utils.data.DataLoader(test_dataset,
                                     batch_size=args.batch_size,
-                                    num_workers=4,
                                     shuffle=True)
 
 filter_types = [args.edge_filter_type,
@@ -67,12 +69,6 @@ if args.model_name == 'vgg16':
 
 elif args.model_name == 'resnet18':
     model = fresnet18(filter_types=filter_types).to(args.device)
-
-elif args.model_name == 'mobilenetv2':
-    model = mobilenetv2(filter_types=filter_types).to(args.device)
-
-elif args.model_name == 'shufflenetv2':
-    model = shufflenetv2(filter_types=filter_types).to(args.device)
 
 logger.info(f'MODEL : {args.model_name} \n'
             f'NUM Filter : {args.num_filters} \n'
@@ -109,10 +105,6 @@ trainer = ClassifyTrainer(model,
                           scheduler=None)
 
 best_test_acc = 0
-train_acc_log = []
-train_loss_log = []
-test_acc_log = []
-test_loss_log = []
 
 # train
 for e in range(args.epoch):
@@ -124,11 +116,6 @@ for e in range(args.epoch):
     train_acc = train_acc / args.batch_size
     test_acc = test_acc / args.batch_size
 
-    train_acc_log.append(train_acc)
-    train_loss_log.append(train_loss)
-    test_acc_log.append(test_acc)
-    test_loss_log.append(test_loss)
-
     if test_acc > best_test_acc:
         trainer.save(f'{args.save_path}/{name}_model.pth')
         best_test_acc = test_acc
@@ -136,8 +123,3 @@ for e in range(args.epoch):
     logger.info(f"Epoch [ {args.epoch} / {e} ] \n"
                 f" + TRAIN [Loss / Acc] : [ {train_loss} / {train_acc} ] \n"
                 f" + TEST  [Loss / Acc] : [ {test_loss} / {test_acc} ]")
-
-save_pkl(train_acc_log, f'./pkl/{name}_train_acc_log')
-save_pkl(train_loss_log, f'./pkl/{name}_train_loss_log')
-save_pkl(test_acc_log, f'./pkl/{name}_test_acc_log')
-save_pkl(test_loss_log, f'./pkl/{name}_test_loss_log')

@@ -1,9 +1,4 @@
-/datasets/cifar10/
-/datasets/tiny_imagenet/
-/models/
-/pkl/
-*.png
 *.log
 __pycache__
-/checkpoint/
-/result/
+/checkpoint
+.idea

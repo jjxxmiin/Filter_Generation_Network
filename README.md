@@ -42,4 +42,3 @@ python cifar100_main.py --model_name vgg16 -e conv -t normal -o normal --save_di
 ```
 python cifar100_main.py --model_name resnet18 -e conv -t normal -o normal --save_dir [PATH]
 ```
-

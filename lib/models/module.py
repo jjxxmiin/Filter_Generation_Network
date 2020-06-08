@@ -54,7 +54,6 @@ def get_filter(filter_type, num_filters, device='cuda'):
         filters = torch.autograd.Variable(torch.randn(num_filters, 3, 3)).to(device)
 
     elif filter_type == 'exp':
-        np.random.seed(20145170)
         filters = torch.autograd.Variable(torch.from_numpy(np.random.exponential(size=(num_filters, 3, 3))).float()).to(device)
 
     elif filter_type == 'sobel':
@@ -62,18 +61,6 @@ def get_filter(filter_type, num_filters, device='cuda'):
                                                        [[-1, -2, -1], [0, 0, 0], [1, 2, 1]],
                                                        [[0, 1, 2], [-1, 0, 1], [-2, -1, 0]],
                                                        [[-2, -1, 0], [-1, 0, 1], [0, 1, 2]]])).to(device)
-
-    elif filter_type == 'sobel_roberts':
-        filters = torch.autograd.Variable(torch.Tensor([[[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]],
-                                                       [[-1, -2, -1], [0, 0, 0], [1, 2, 1]],
-                                                       [[0, 0, 0], [0, 1, 0], [-1, 0, 0]],
-                                                       [[-1, 0, 0], [0, 1, 0], [0, 0, 0]]])).to(device)
-
-    elif filter_type == 'sobel_raplacian':
-        filters = torch.autograd.Variable(torch.Tensor([[[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]],
-                                                        [[-1, -2, -1], [0, 0, 0], [1, 2, 1]],
-                                                        [[0, -1, 0], [-1, 4, -1], [0, -1, 0]],
-                                                        [[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]]])).to(device)
 
     elif filter_type == 'line':
         filters = torch.autograd.Variable(torch.Tensor([[[-1, -1, -1], [2, 2, 2], [-1, -1, -1]],

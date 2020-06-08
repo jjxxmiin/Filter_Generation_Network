@@ -91,7 +91,7 @@ class ClassifyTrainer:
 
             # forward
             output = self.model(images)
-            # # acc
+            # acc
             # _, predicted = torch.max(pred, 1)
             # correct_meter.update((predicted == labels).sum().item())
             _, pred = output.topk(5, 1, largest=True, sorted=True)

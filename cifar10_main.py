@@ -1,3 +1,4 @@
+import os
 import argparse
 import torch
 from torch import nn, optim, utils
@@ -12,7 +13,6 @@ parser.add_argument('--datasets', type=str, default='cifar10')
 parser.add_argument('--device', type=str, default='cuda')
 parser.add_argument('--lr', type=float, default=0.1)
 parser.add_argument('--epoch', type=int, default=350)
-parser.add_argument('--stride', type=int, default=1)
 parser.add_argument('--num_filters', type=int, default=3)
 parser.add_argument('--batch_size', type=int, default=256)
 parser.add_argument('--edge_filter_type', '-e', type=str, default='conv')
@@ -24,6 +24,9 @@ parser.set_defaults(feature=True)
 args = parser.parse_args()
 
 logger = get_logger(args.log_path)
+
+if not os.path.exists(args.save_path):
+    os.mkdir(args.save_path)
 
 torch.manual_seed(20145170)
 torch.cuda.manual_seed(20145170)
@@ -62,10 +65,10 @@ filter_types = [args.edge_filter_type,
 
 # model
 if args.model_name == 'vgg16':
-    model = fvgg16_bn(filter_types=filter_types, stride=args.stride, num_filters=args.num_filters).to(args.device)
+    model = fvgg16_bn(filter_types=filter_types, num_filters=args.num_filters).to(args.device)
 
 elif args.model_name == 'resnet18':
-    model = fresnet18(filter_types=filter_types).to(args.device)
+    model = fresnet18(filter_types=filter_types, num_filters=args.num_filters).to(args.device)
 
 logger.info(f'MODEL : {args.model_name} \n'
             f'NUM Filter : {args.num_filters} \n'
@@ -79,8 +82,7 @@ name = f'{args.datasets}_' \
        f'{args.num_filters}_' \
        f'{args.edge_filter_type}_' \
        f'{args.texture_filter_type}_' \
-       f'{args.object_filter_type}_' \
-       f'{args.stride}_'
+       f'{args.object_filter_type}_'
 
 # cost
 criterion = nn.CrossEntropyLoss().to(args.device)
@@ -103,10 +105,6 @@ trainer = ClassifyTrainer(model,
                           scheduler=None)
 
 best_test_acc = 0
-train_acc_log = []
-train_loss_log = []
-test_acc_log = []
-test_loss_log = []
 
 # train
 for e in range(args.epoch):
@@ -118,11 +116,6 @@ for e in range(args.epoch):
     train_acc = train_acc / args.batch_size
     test_acc = test_acc / args.batch_size
 
-    train_acc_log.append(train_acc)
-    train_loss_log.append(train_loss)
-    test_acc_log.append(test_acc)
-    test_loss_log.append(test_loss)
-
     if test_acc > best_test_acc:
         print("MODEL SAVED")
         trainer.save(f'{args.save_path}/{name}_model.pth')
@@ -131,8 +124,3 @@ for e in range(args.epoch):
     logger.info(f"Epoch [ {args.epoch} / {e} ] \n"
                 f" + TRAIN [Loss / Acc] : [ {train_loss} / {train_acc} ] \n"
                 f" + TEST  [Loss / Acc] : [ {test_loss} / {test_acc} ]")
-
-save_pkl(train_acc_log, f'./pkl/{name}_train_acc_log')
-save_pkl(train_loss_log, f'./pkl/{name}_train_loss_log')
-save_pkl(test_acc_log, f'./pkl/{name}_test_acc_log')
-save_pkl(test_loss_log, f'./pkl/{name}_test_loss_log')

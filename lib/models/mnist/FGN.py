@@ -56,13 +56,3 @@ class FGN(nn.Module):
         x = self.classifier(x)
 
         return x
-
-
-if __name__ == "__main__":
-    img = torch.autograd.Variable(torch.ones(1, 3, 32, 32), requires_grad=True)
-    filters = torch.autograd.Variable(torch.ones(3, 3, 3), requires_grad=True)
-
-    model = FGN(filters)
-
-    for i in model.parameters():
-        print(i.shape)
