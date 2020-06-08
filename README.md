@@ -1,19 +1,45 @@
-# Pruning
+# Filter Combination Network
 
-# DATASETS
+This repository contains code that implements filter combination learning.
 
-- imagenet
+## requirements
 
-```shell
+- python      : 3.6
+- torch       : 1.5.0
+- torchvision : 0.6.0
 
-- datasets
-    - imagenet - train
-               - val
-               - valprep.sh
-- Prune_QTorch
+## Mnist
+
+```
+python mnist_main.py --save_dir [PATH]
 ```
 
-valprep.sh [Download](https://github.com/pytorch/examples/tree/master/imagenet)
+## Cifar10
 
-# REFERENCE
-- [https://github.com/pytorch/examples/tree/master/imagenet](https://github.com/pytorch/examples/tree/master/imagenet)
+**vgg16**
+
+```
+python cifar10_main.py --model_name vgg16 -e conv -t normal -o normal --save_dir [PATH]
+```
+
+**resnet18**
+
+
+```
+python cifar10_main.py --model_name resnet18 -e conv -t normal -o normal --save_dir [PATH]
+```
+
+## Cifar100
+
+**vgg16**
+
+```
+python cifar100_main.py --model_name vgg16 -e conv -t normal -o normal --save_dir [PATH]
+```
+
+**resnet18**
+
+```
+python cifar100_main.py --model_name resnet18 -e conv -t normal -o normal --save_dir [PATH]
+```
+
