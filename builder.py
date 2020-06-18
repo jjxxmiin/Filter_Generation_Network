@@ -1,6 +1,6 @@
-import argparse
 import torch
-from torch import nn, optim, utils
+import time
+from torch import nn, utils
 from torchvision import datasets, transforms
 from lib.models.cifar10 import fvgg16_bn
 from lib.helper import ClassifyTrainer
@@ -26,6 +26,7 @@ model.load_state_dict(torch.load(model_path))
 
 current_layer = 0
 
+start_time = time.time()
 for i, (name, module)in enumerate(model.features.named_modules()):
     if isinstance(module, GFLayer):
         current_layer += 1
@@ -56,6 +57,9 @@ for i, (name, module)in enumerate(model.features.named_modules()):
 
         new_conv.weight.data = new_weights
         model.features[i-1] = new_conv
+endtime = time.time()
+
+print(f"Require Build Time : {endtime - start_time}")
 
 test_transformer = transforms.Compose([transforms.ToTensor(),
                                        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])

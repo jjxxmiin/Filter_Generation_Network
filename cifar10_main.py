@@ -6,7 +6,7 @@ from torchvision import datasets, transforms
 from lib.models.cifar10 import fvgg16_bn, fresnet18
 from lib.models.module import get_filter
 from lib.helper import ClassifyTrainer
-from lib.utils import get_logger, save_pkl
+from lib.utils import get_logger
 
 parser = argparse.ArgumentParser(description='CIFAR10')
 parser.add_argument('--model_name', type=str, default='vgg16')
