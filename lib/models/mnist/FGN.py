@@ -35,10 +35,10 @@ class GFLayer(torch.nn.Module):
 class FGN(nn.Module):
     def __init__(self, num_filters=3):
         super(FGN, self).__init__()
-        basis_filter = torch.autograd.Variable(torch.rand(num_filters, 3, 3)).to('cuda')
+        ibfs = torch.autograd.Variable(torch.rand(num_filters, 3, 3)).to('cuda')
 
-        self.gf1 = GFLayer(3, 32, basis_filter)
-        self.gf2 = GFLayer(32, 32, basis_filter)
+        self.gf1 = GFLayer(3, 32, ibfs)
+        self.gf2 = GFLayer(32, 32, ibfs)
 
         self.classifier = nn.Sequential(nn.Linear(1568, 512),
                                         nn.Linear(512, 10))

@@ -24,14 +24,14 @@ class FVGG(nn.Module):
         return out
 
 
-def make_layers(cfg, filter_types, num_filters, bias, batch_norm=False):
+def make_layers(cfg, filters, bias, batch_norm=False):
     first = [0, 1]
     middle = [3, 4, 6, 7, 8, 10, 11, 12]
     last = [14, 15, 16]
 
-    edge_filters = get_filter(filter_types[0], num_filters)
-    texture_filters = get_filter(filter_types[1], num_filters)
-    object_filters = get_filter(filter_types[2], num_filters)
+    edge_filters = filters[0]
+    texture_filters = filters[1]
+    object_filters = filters[2]
 
     layers = []
 
@@ -68,5 +68,5 @@ def make_layers(cfg, filter_types, num_filters, bias, batch_norm=False):
     return nn.Sequential(*layers)
 
 
-def fvgg16_bn(filter_types, num_filters=3, bias=True):
-    return FVGG(make_layers(cfg['D'], filter_types, num_filters, bias=bias, batch_norm=True))
+def fvgg16_bn(filters, bias=True):
+    return FVGG(make_layers(cfg['D'], filters, bias=bias, batch_norm=True))

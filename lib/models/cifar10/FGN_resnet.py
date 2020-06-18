@@ -63,13 +63,13 @@ class Bottleneck(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, block, filter_types, num_filters, num_blocks, num_classes=10):
+    def __init__(self, block, filters, num_blocks, num_classes=10):
 
         super(ResNet, self).__init__()
 
-        edge_filters = get_filter(filter_types[0], num_filters)
-        texture_filters = get_filter(filter_types[1], num_filters)
-        object_filters = get_filter(filter_types[2], num_filters)
+        edge_filters = filters[0]
+        texture_filters = filters[1]
+        object_filters = filters[2]
 
         self.in_planes = 64
 
@@ -106,21 +106,21 @@ class ResNet(nn.Module):
         return out
 
 
-def fresnet18(filter_types, num_filters=3):
-    return ResNet(BasicBlock, filter_types, num_filters, [2, 2, 2, 2])
+def fresnet18(filters):
+    return ResNet(BasicBlock, filters, [2, 2, 2, 2])
 
 
-def fresnet34(filter_types, num_filters=3):
-    return ResNet(BasicBlock, filter_types, num_filters, [3, 4, 6, 3])
+def fresnet34(filters):
+    return ResNet(BasicBlock, filters, [3, 4, 6, 3])
 
 
-def fresnet50(filter_types, num_filters=3):
-    return ResNet(Bottleneck, filter_types, num_filters, [3, 4, 6, 3])
+def fresnet50(filters):
+    return ResNet(Bottleneck, filters, [3, 4, 6, 3])
 
 
-def fresnet101(filter_types, num_filters=3):
-    return ResNet(Bottleneck, filter_types, num_filters, [3, 4, 23, 3])
+def fresnet101(filters):
+    return ResNet(Bottleneck, filters, [3, 4, 23, 3])
 
 
-def fresnet152(filter_types, num_filters=3):
-    return ResNet(Bottleneck, filter_types, num_filters, [3, 8, 36, 3])
+def fresnet152(filters):
+    return ResNet(Bottleneck, filters, [3, 8, 36, 3])
