@@ -4,6 +4,7 @@ import torch
 from torch import nn, optim, utils
 from torchvision import datasets, transforms
 from lib.models.cifar100 import fvgg16_bn, fresnet18
+from lib.models.module import get_filter
 from lib.helper import ClassifyTrainer
 from lib.utils import get_logger, save_pkl
 
@@ -59,16 +60,18 @@ test_loader = utils.data.DataLoader(test_dataset,
                                     batch_size=args.batch_size,
                                     shuffle=True)
 
-filter_types = [args.edge_filter_type,
-                args.texture_filter_type,
-                args.object_filter_type]
+first_filters = get_filter('conv', num_filters=args.num_filter)
+middle_filters = get_filter('normal', num_filters=args.num_filter)
+last_filters = get_filter('normal', num_filters=args.num_filter)
+
+filters = [first_filters, middle_filters, last_filters]
 
 # model
 if args.model_name == 'vgg16':
-    model = fvgg16_bn(filter_types=filter_types).to(args.device)
+    model = fvgg16_bn(filters=filters).to(args.device)
 
 elif args.model_name == 'resnet18':
-    model = fresnet18(filter_types=filter_types).to(args.device)
+    model = fresnet18(filters=filters).to(args.device)
 
 logger.info(f'MODEL : {args.model_name} \n'
             f'NUM Filter : {args.num_filters} \n'
