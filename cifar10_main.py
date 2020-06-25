@@ -1,7 +1,6 @@
 import os
 import argparse
 import torch
-import time
 from torch import nn, optim, utils
 from torchvision import datasets, transforms
 from lib.models.cifar10 import fvgg16_bn, fresnet18
@@ -18,8 +17,8 @@ parser.add_argument('--epoch', type=int, default=350)
 parser.add_argument('--num_filters', type=int, default=3)
 parser.add_argument('--batch_size', type=int, default=256)
 parser.add_argument('--edge_filter_type', '-e', type=str, default='conv')
-parser.add_argument('--texture_filter_type', '-t', type=str, default='normal')
-parser.add_argument('--object_filter_type', '-o', type=str, default='normal')
+parser.add_argument('--texture_filter_type', '-t', type=str, default='conv')
+parser.add_argument('--object_filter_type', '-o', type=str, default='conv')
 parser.add_argument('--save_path', type=str, default='./checkpoint')
 parser.add_argument('--log_path', type=str, default='./cifar10.log')
 parser.set_defaults(feature=True)
@@ -61,9 +60,9 @@ test_loader = utils.data.DataLoader(test_dataset,
                                     batch_size=args.batch_size,
                                     shuffle=True)
 
-first_filters = get_filter('conv', num_filters=args.num_filters)
-middle_filters = get_filter('normal', num_filters=args.num_filters)
-last_filters = get_filter('normal', num_filters=args.num_filters)
+first_filters = get_filter(args.edge_filter_type, num_filters=args.num_filters)
+middle_filters = get_filter(args.texture_filter_type, num_filters=args.num_filters)
+last_filters = get_filter(args.object_filter_type, num_filters=args.num_filters)
 
 filters = [first_filters, middle_filters, last_filters]
 
@@ -110,8 +109,6 @@ trainer = ClassifyTrainer(model,
 
 best_test_acc = 0
 
-start_time = time.time()
-
 # train
 for e in range(args.epoch):
     scheduler.step()
@@ -130,7 +127,3 @@ for e in range(args.epoch):
     logger.info(f"Epoch [ {args.epoch} / {e} ] \n"
                 f" + TRAIN [Loss / Acc] : [ {train_loss} / {train_acc} ] \n"
                 f" + TEST  [Loss / Acc] : [ {test_loss} / {test_acc} ]")
-
-end_time = time.time()
-
-print(end_time - start_time)

@@ -1,7 +1,6 @@
 import os
 import argparse
 import torch
-import time
 from torch import nn, optim, utils
 from torchvision import datasets, transforms
 from lib.models.cifar100 import fvgg16_bn, fresnet18
@@ -61,9 +60,9 @@ test_loader = utils.data.DataLoader(test_dataset,
                                     batch_size=args.batch_size,
                                     shuffle=True)
 
-first_filters = get_filter('conv', num_filters=args.num_filters)
-middle_filters = get_filter('normal', num_filters=args.num_filters)
-last_filters = get_filter('normal', num_filters=args.num_filters)
+first_filters = get_filter(args.edge_filter_type, num_filters=args.num_filters)
+middle_filters = get_filter(args.texture_filter_type, num_filters=args.num_filters)
+last_filters = get_filter(args.object_filter_type, num_filters=args.num_filters)
 
 filters = [first_filters, middle_filters, last_filters]
 
@@ -110,8 +109,6 @@ trainer = ClassifyTrainer(model,
 
 best_test_acc = 0
 
-start_time = time.time()
-
 # train
 for e in range(args.epoch):
     scheduler.step()
@@ -123,13 +120,10 @@ for e in range(args.epoch):
     test_acc = test_acc / args.batch_size
 
     if test_acc > best_test_acc:
+        print("MODEL SAVED")
         trainer.save(f'{args.save_path}/{name}_model.pth')
         best_test_acc = test_acc
 
     logger.info(f"Epoch [ {args.epoch} / {e} ] \n"
                 f" + TRAIN [Loss / Acc] : [ {train_loss} / {train_acc} ] \n"
                 f" + TEST  [Loss / Acc] : [ {test_loss} / {test_acc} ]")
-
-end_time = time.time()
-
-print(end_time - start_time)
