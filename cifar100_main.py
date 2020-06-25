@@ -21,6 +21,7 @@ parser.add_argument('--texture_filter_type', '-t', type=str, default='normal')
 parser.add_argument('--object_filter_type', '-o', type=str, default='normal')
 parser.add_argument('--save_path', type=str, default='./checkpoint')
 parser.add_argument('--log_path', type=str, default='./cifar100.log')
+parser.add_argument('--seed', type=int, default=20145170)
 parser.set_defaults(feature=True)
 args = parser.parse_args()
 
@@ -29,8 +30,8 @@ logger = get_logger(args.log_path)
 if not os.path.exists(args.save_path):
     os.mkdir(args.save_path)
 
-torch.manual_seed(20145170)
-torch.cuda.manual_seed(20145170)
+torch.manual_seed(args.seed)
+torch.cuda.manual_seed(args.seed)
 
 # augmentation
 train_transformer = transforms.Compose([transforms.RandomHorizontalFlip(),
@@ -80,12 +81,12 @@ logger.info(f'MODEL : {args.model_name} \n'
             f'OBJECT Filter : {args.object_filter_type} \n'
             f'Learning Rate : {args.lr}')
 
-name = f'{args.datasets}_' \
-       f'{args.model_name}_' \
-       f'{args.num_filters}_' \
-       f'{args.edge_filter_type}_' \
-       f'{args.texture_filter_type}_' \
-       f'{args.object_filter_type}_'
+model_path = f'{args.datasets}_' \
+             f'{args.model_name}_' \
+             f'{args.num_filters}_' \
+             f'{args.edge_filter_type}_' \
+             f'{args.texture_filter_type}_' \
+             f'{args.object_filter_type}_model.pth'
 
 # cost
 criterion = nn.CrossEntropyLoss().to(args.device)
@@ -120,8 +121,7 @@ for e in range(args.epoch):
     test_acc = test_acc / args.batch_size
 
     if test_acc > best_test_acc:
-        print("MODEL SAVED")
-        trainer.save(f'{args.save_path}/{name}_model.pth')
+        trainer.save(os.path.join(args.save_path, model_path))
         best_test_acc = test_acc
 
     logger.info(f"Epoch [ {args.epoch} / {e} ] \n"
