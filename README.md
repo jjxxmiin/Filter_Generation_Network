@@ -1,4 +1,4 @@
-# Filter Combination Network
+# Filter Generation Network
 
 This repository contains code that implements filter combination learning.
 
