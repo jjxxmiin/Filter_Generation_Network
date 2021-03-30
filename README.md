@@ -80,3 +80,17 @@ for i, (name, module)in enumerate(model.features.named_modules()):
         model.features[i-1] = new_conv
 ```
 
+## Citation
+
+```
+@article{jeong2021filter,
+  title={Filter combination learning for CNN model compression},
+  author={Jeong, Jaemin and Cho, Ji-Ho and Lee, Jeong-Gun},
+  journal={ICT Express},
+  volume={7},
+  number={1},
+  pages={5--9},
+  year={2021},
+  publisher={Elsevier}
+}
+```
